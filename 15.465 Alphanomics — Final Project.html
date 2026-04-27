@@ -1,0 +1,2674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alphanomics — Fama-MacBeth Research Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,300;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{
+  --bg:#ffffff;              /* clean white */
+  --bg-2:#f7f8fa;            /* off-white surface */
+  --bg-3:#eef0f4;            /* hover surface */
+  --ink:#0a2540;             /* deep institutional navy */
+  --ink-2:#33475b;           /* secondary navy */
+  --ink-3:#5e6c7d;           /* muted text */
+  --ink-soft:#9aa4b1;        /* placeholder */
+  --rule:#0a2540;            /* hairline rule navy */
+  --rule-soft:#dfe3eb;       /* light grid */
+  --pos:#0d8050;             /* clean green */
+  --neg:#c41e3a;             /* clean red */
+  --accent:#0a2540;          /* navy accent */
+  --highlight:#1565d8;       /* bright accent for emphasis */
+  --serif:'Newsreader',Georgia,serif;
+  --sans:'Inter Tight','Helvetica Neue',Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"kern","ss01";
+  min-height:100vh;
+  letter-spacing:-0.005em;
+}
+::selection{background:var(--ink);color:var(--bg)}
+
+/* ========== TICKER BAR ========== */
+.ticker-bar{
+  background:var(--ink);color:var(--bg);
+  border-bottom:1px solid var(--ink);
+  font-family:var(--mono);font-size:11px;letter-spacing:0.04em;
+  height:30px;overflow:hidden;position:relative;
+}
+.ticker-track{
+  display:flex;gap:42px;align-items:center;height:100%;
+  white-space:nowrap;animation:tickerScroll 50s linear infinite;
+  padding-left:100vw;
+}
+@keyframes tickerScroll{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(-100%)}
+}
+.tk-item{display:inline-flex;gap:9px;align-items:center}
+.tk-sym{font-weight:600;color:var(--bg);letter-spacing:0.06em}
+.tk-px{color:#9aa4b1;font-weight:300}
+.tk-chg.up{color:#4ade80;font-weight:500}
+.tk-chg.dn{color:#fb7185;font-weight:500}
+
+/* ========== HEADER ========== */
+header{
+  border-bottom:1px solid var(--rule-soft);
+  background:var(--bg);
+  position:sticky;top:0;z-index:50;
+}
+.header-inner{
+  max-width:1280px;margin:0 auto;padding:20px 48px;
+  display:flex;justify-content:space-between;align-items:center;gap:48px;
+}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand .mast{
+  font-family:var(--sans);font-size:20px;font-weight:600;
+  letter-spacing:-0.02em;line-height:1;color:var(--ink);
+}
+.brand .mast em{font-style:normal;font-weight:300;color:var(--ink-3)}
+.brand .sub{
+  font-family:var(--mono);font-size:9px;letter-spacing:0.18em;
+  color:var(--ink-3);text-transform:uppercase;margin-top:6px;font-weight:400;
+}
+nav ul{display:flex;list-style:none;gap:0}
+nav button{
+  background:none;border:none;color:var(--ink-2);
+  font-family:var(--sans);font-size:11px;letter-spacing:0.1em;
+  text-transform:uppercase;padding:10px 18px;cursor:pointer;
+  transition:all 0.15s;font-weight:500;
+  border-bottom:2px solid transparent;
+}
+nav button:hover{color:var(--ink)}
+nav button.active{color:var(--ink);border-bottom-color:var(--ink)}
+nav button .num{font-family:var(--mono);font-size:9px;font-weight:400;opacity:0.5;margin-right:8px}
+
+/* ========== MAIN ========== */
+main{max-width:1280px;margin:0 auto;padding:64px 48px 120px;position:relative}
+.page{display:none;animation:fade 0.4s ease}
+.page.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ========== TYPOGRAPHY ========== */
+.eyebrow{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:14px;margin-bottom:32px;
+}
+.eyebrow::before{content:'';width:36px;height:1px;background:var(--ink)}
+
+h1.title{
+  font-family:var(--serif);font-weight:300;
+  font-size:clamp(48px,7vw,88px);
+  line-height:0.96;letter-spacing:-0.035em;
+  margin-bottom:36px;
+  font-variation-settings:"opsz" 72;
+  color:var(--ink);
+}
+h1.title em{font-style:italic;font-weight:300;color:var(--ink-2)}
+
+.lead{
+  font-family:var(--sans);font-size:18px;font-weight:300;
+  line-height:1.55;color:var(--ink-2);max-width:680px;margin-bottom:56px;
+  letter-spacing:-0.005em;
+}
+
+h2{
+  font-family:var(--serif);font-weight:400;font-size:36px;
+  letter-spacing:-0.02em;line-height:1.1;font-style:italic;
+  font-variation-settings:"opsz" 36;color:var(--ink);
+}
+h3{font-family:var(--sans);font-weight:600;font-size:20px;letter-spacing:-0.01em;line-height:1.25;color:var(--ink)}
+h4{font-family:var(--sans);font-weight:600;font-size:16px;line-height:1.3;color:var(--ink)}
+
+/* section dividers */
+.section{margin:88px 0 32px;border-top:1px solid var(--rule-soft);padding-top:40px}
+.section-head{
+  display:flex;align-items:baseline;gap:24px;margin-bottom:36px;flex-wrap:wrap;
+}
+.section-head .num{
+  font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:0.2em;
+}
+.section-head h2{flex:1}
+.section-head .meta{
+  font-family:var(--mono);font-size:10px;color:var(--ink-3);
+  letter-spacing:0.12em;text-transform:uppercase;
+}
+
+/* ========== HERO META ========== */
+.hero-meta{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border-top:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft);
+  margin-top:36px;
+}
+.hero-meta div{padding:22px 22px 22px 0;border-right:1px solid var(--rule-soft)}
+.hero-meta div:last-child{border-right:none;padding-right:0}
+.hero-meta .k{font-family:var(--mono);font-size:9px;letter-spacing:0.18em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px;font-weight:500}
+.hero-meta .v{font-family:var(--serif);font-size:30px;font-weight:300;letter-spacing:-0.015em;color:var(--ink)}
+.hero-meta .v em{font-style:italic;color:var(--ink-2)}
+
+/* ========== STEP / NUMBERED LIST ========== */
+.steps{margin:40px 0}
+.step{
+  display:grid;grid-template-columns:64px 1fr;gap:32px;
+  padding:28px 0;border-top:1px solid var(--rule-soft);
+}
+.step:last-child{border-bottom:1px solid var(--rule-soft)}
+.step .roman{
+  font-family:var(--serif);font-size:32px;font-weight:300;font-style:italic;
+  line-height:1;letter-spacing:-0.02em;color:var(--ink-2);
+}
+.step h4{margin-bottom:8px;font-size:18px;font-weight:600}
+.step p{color:var(--ink-2);font-size:14.5px;max-width:680px;line-height:1.6}
+.step .tags{margin-top:14px;display:flex;gap:6px;flex-wrap:wrap}
+.step .tag{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.06em;
+  padding:4px 10px;border:1px solid var(--rule-soft);color:var(--ink-2);
+  background:var(--bg-2);
+}
+
+/* ========== TABLE ========== */
+.tbl{
+  width:100%;border-collapse:collapse;margin:20px 0;
+  font-family:var(--mono);font-size:11.5px;
+  border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+}
+.tbl th{
+  text-align:left;padding:11px 14px 9px;font-weight:600;
+  border-bottom:1px solid var(--ink);background:var(--bg-2);
+  font-size:9px;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink-3);font-family:var(--sans);
+}
+.tbl td{padding:9px 14px;border-bottom:1px solid var(--rule-soft)}
+.tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl td.pos{color:var(--pos);font-weight:500}
+.tbl td.neg{color:var(--neg);font-weight:500}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg-2)}
+
+/* ========== CARDS ========== */
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--rule-soft)}
+.grid-3 .col{padding:28px 24px;border-right:1px solid var(--rule-soft);background:var(--bg)}
+.grid-3 .col:last-child{border-right:none}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule-soft);margin:20px 0}
+.grid-2 .col{padding:24px;border-right:1px solid var(--rule-soft);background:var(--bg)}
+.grid-2 .col:last-child{border-right:none}
+@media(max-width:900px){
+  .grid-3,.grid-2,.hero-meta{grid-template-columns:1fr}
+  .grid-3 .col,.grid-2 .col,.hero-meta div{border-right:none;border-bottom:1px solid var(--rule-soft)}
+  .grid-3 .col:last-child,.grid-2 .col:last-child,.hero-meta div:last-child{border-bottom:none}
+  .header-inner{padding:18px 24px;flex-wrap:wrap;gap:16px}
+  main{padding:36px 24px 80px}
+  nav ul{flex-wrap:wrap}
+}
+
+.col .label{font-family:var(--mono);font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;font-weight:500}
+.col h3{margin-bottom:10px;font-size:19px;font-weight:600}
+.col p{color:var(--ink-2);font-size:13.5px;line-height:1.6}
+
+/* 4-col grid for signal cards */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule-soft)}
+.grid-4 .col{padding:24px 20px;border-right:1px solid var(--rule-soft);background:var(--bg)}
+.grid-4 .col:last-child{border-right:none}
+@media(max-width:1000px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-4 .col:nth-child(2){border-right:none}.grid-4 .col:nth-child(1),.grid-4 .col:nth-child(2){border-bottom:1px solid var(--rule-soft)}}
+@media(max-width:600px){.grid-4{grid-template-columns:1fr}.grid-4 .col{border-right:none;border-bottom:1px solid var(--rule-soft)}.grid-4 .col:last-child{border-bottom:none}}
+
+/* metric chip — small numeric callouts inside cards */
+.metric{
+  display:flex;align-items:baseline;gap:4px;margin:10px 0 12px;
+  font-family:var(--mono);
+}
+.metric .m-val{
+  font-size:16px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;
+  letter-spacing:-0.01em;
+}
+.metric .m-val.pos{color:var(--pos)}
+.metric .m-val.neg{color:var(--neg)}
+.metric .m-lbl{
+  font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-3);
+  margin-right:6px;font-weight:500;
+}
+
+/* ========== RECOMMENDATION ========== */
+.rec-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  border:1px solid var(--ink);margin:28px 0;
+}
+.rec{padding:32px 28px;border-right:1px solid var(--rule-soft);position:relative;background:var(--bg)}
+.rec:last-child{border-right:none}
+.rec.buy{background:rgba(13,128,80,0.04)}
+.rec.sell{background:rgba(196,30,58,0.04)}
+.rec .ticker{font-family:var(--mono);font-size:10px;letter-spacing:0.15em;color:var(--ink-3);margin-bottom:8px;font-weight:500}
+.rec h3{font-size:24px;margin-bottom:14px;font-weight:600;line-height:1.15;font-family:var(--sans)}
+.rec .badge{
+  display:inline-block;padding:5px 14px;font-family:var(--mono);
+  font-size:10px;letter-spacing:0.18em;text-transform:uppercase;font-weight:600;
+  border:1px solid var(--ink);background:var(--ink);color:var(--bg);
+}
+.rec.buy .badge{background:var(--pos);border-color:var(--pos)}
+.rec.sell .badge{background:var(--neg);border-color:var(--neg)}
+.rec.hold .badge{background:transparent;color:var(--ink)}
+.rec .score{font-family:var(--serif);font-size:38px;font-weight:300;font-style:italic;margin-top:18px;letter-spacing:-0.025em}
+.rec .score.pos{color:var(--pos)}
+.rec .score.neg{color:var(--neg)}
+.rec .score-lbl{font-family:var(--mono);font-size:9px;letter-spacing:0.18em;color:var(--ink-3);text-transform:uppercase;margin-top:4px;font-weight:500}
+@media(max-width:800px){.rec-grid{grid-template-columns:1fr}.rec{border-right:none;border-bottom:1px solid var(--rule-soft)}.rec:last-child{border-bottom:none}}
+
+/* ========== QUOTE ========== */
+.quote{
+  font-family:var(--serif);font-style:italic;font-weight:300;
+  font-size:clamp(24px,3.4vw,34px);line-height:1.35;
+  max-width:880px;margin:64px 0;padding-left:28px;
+  border-left:2px solid var(--ink);letter-spacing:-0.01em;color:var(--ink);
+}
+.quote .attr{
+  display:block;margin-top:18px;font-family:var(--mono);font-size:10px;
+  font-style:normal;letter-spacing:0.12em;color:var(--ink-3);font-weight:500;
+}
+
+/* ========== SIMULATION CONTROLS ========== */
+.sim-shell{margin:40px 0}
+
+.upload-zone{
+  border:1.5px dashed var(--rule-soft);padding:42px 36px;text-align:center;
+  background:var(--bg-2);transition:all 0.2s;cursor:pointer;
+  margin-bottom:20px;
+}
+.upload-zone:hover{background:var(--bg-3);border-color:var(--ink-3)}
+.upload-zone.active{background:var(--bg-3);border-color:var(--ink);border-style:solid}
+.upload-zone .icon{font-family:var(--serif);font-size:32px;font-style:italic;font-weight:300;margin-bottom:10px;color:var(--ink-2)}
+.upload-zone .ttl{font-size:16px;font-weight:600;margin-bottom:6px;font-family:var(--sans)}
+.upload-zone .sub{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--ink-3);text-transform:uppercase}
+.upload-zone input{display:none}
+.upload-zone.loaded{border-style:solid;background:var(--bg-2);border-color:var(--pos)}
+
+.sim-tabs{
+  display:flex;border-bottom:1px solid var(--ink);margin-bottom:24px;
+}
+.sim-tab{
+  flex:1;background:none;border:none;
+  font-family:var(--sans);font-size:11px;letter-spacing:0.1em;font-weight:500;
+  padding:12px 18px;cursor:pointer;text-transform:uppercase;color:var(--ink-3);
+  transition:all 0.15s;border-bottom:2px solid transparent;margin-bottom:-1px;
+}
+.sim-tab:hover{color:var(--ink)}
+.sim-tab.active{color:var(--ink);border-bottom-color:var(--ink)}
+.sim-tab-num{font-family:var(--mono);font-size:9px;font-weight:400;opacity:0.5;margin-right:6px}
+
+.sim-panel{display:none}
+.sim-panel.active{display:block}
+
+.btn{
+  font-family:var(--sans);font-size:11px;letter-spacing:0.12em;font-weight:600;
+  text-transform:uppercase;padding:11px 22px;background:var(--ink);
+  color:var(--bg);border:1px solid var(--ink);cursor:pointer;
+  transition:all 0.15s;
+}
+.btn:hover{background:var(--bg);color:var(--ink)}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--ink-3)}
+.btn.ghost:hover{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+
+/* signal pills */
+.pill-row{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pill{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.08em;font-weight:500;
+  padding:7px 12px;border:1px solid var(--rule-soft);background:var(--bg);
+  cursor:pointer;text-transform:uppercase;color:var(--ink-2);
+}
+.pill:hover{background:var(--bg-2);border-color:var(--ink-3)}
+.pill.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* manual entry form */
+.manual-form{
+  border:1px solid var(--rule-soft);padding:24px;background:var(--bg);
+  margin-bottom:20px;
+}
+.manual-form-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--rule-soft);
+}
+.manual-co{padding:16px;border-right:1px solid var(--rule-soft)}
+.manual-co:last-child{border-right:none}
+.manual-co h4{font-size:13px;margin-bottom:14px;font-family:var(--mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.field{margin-bottom:10px}
+.field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase}
+.field input{
+  width:100%;padding:6px 8px;border:1px solid var(--rule-soft);
+  background:var(--bg);font-family:var(--mono);font-size:12px;
+  color:var(--ink);
+}
+.field input:focus{outline:none;border-color:var(--ink)}
+.sig-block{
+  border-top:1px solid var(--rule-soft);padding:10px 0 8px;margin-top:8px;
+}
+.sig-block-head{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--ink-2);margin-bottom:6px;
+}
+.sig-block-head strong{font-weight:600}
+.field-row{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:6px;margin-bottom:6px}
+.field-row input,.sig-block .co-dev{
+  padding:6px 8px;border:1px solid var(--rule-soft);background:var(--bg);
+  font-family:var(--mono);font-size:11px;color:var(--ink);width:100%;
+}
+.field-row input:focus,.sig-block .co-dev:focus{outline:none;border-color:var(--ink)}
+.sig-block .co-dev{margin-top:2px;font-size:10px;color:var(--ink-3)}
+@media(max-width:700px){.manual-form-grid{grid-template-columns:1fr}.manual-co{border-right:none;border-bottom:1px solid var(--rule-soft)}.field-row{grid-template-columns:1fr}}
+
+/* dynamic companies adder */
+.companies-add-row{
+  display:flex;gap:12px;align-items:center;margin:16px 0;
+  font-family:var(--mono);font-size:11px;letter-spacing:0.1em;
+}
+.cnt-pill{
+  display:inline-block;font-family:var(--mono);font-size:10px;
+  padding:6px 12px;border:1px solid var(--rule-soft);background:var(--bg);
+  letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:500;
+}
+.cnt-pill.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* status / log */
+.log{
+  font-family:var(--mono);font-size:11px;color:var(--ink-3);
+  background:var(--bg-2);padding:12px 16px;border-left:2px solid var(--ink);
+  margin:14px 0;line-height:1.7;letter-spacing:0.02em;
+}
+.log .ok{color:var(--pos);font-weight:500}
+.log .err{color:var(--neg);font-weight:500}
+
+/* canvas */
+.chart-card{
+  border:1px solid var(--rule-soft);padding:24px;background:var(--bg);
+  margin:18px 0;
+}
+.chart-card .ttl{font-family:var(--mono);font-size:10px;letter-spacing:0.15em;color:var(--ink-3);text-transform:uppercase;margin-bottom:14px;font-weight:500}
+canvas{display:block;width:100%}
+
+/* big stats grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule-soft);margin:20px 0}
+.kpi{padding:22px;border-right:1px solid var(--rule-soft);background:var(--bg)}
+.kpi:last-child{border-right:none}
+.kpi .k{font-family:var(--mono);font-size:9px;letter-spacing:0.18em;color:var(--ink-3);text-transform:uppercase;font-weight:500}
+.kpi .v{font-family:var(--serif);font-size:28px;font-weight:300;font-style:italic;margin-top:8px;letter-spacing:-0.015em;color:var(--ink)}
+@media(max-width:800px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.kpi{border-right:none;border-bottom:1px solid var(--rule-soft)}.kpi:nth-child(2){border-right:none}}
+
+/* ========== METHODOLOGY ========== */
+.formula{
+  background:var(--bg-2);border-left:2px solid var(--ink);
+  padding:18px 22px;margin:18px 0;font-family:var(--mono);font-size:12.5px;
+  line-height:1.85;color:var(--ink);letter-spacing:0.01em;
+}
+.formula em{color:var(--neg);font-style:normal;font-weight:600}
+.formula .c{color:var(--ink-3);font-size:10.5px;display:block;margin-top:8px}
+
+.method-step{
+  display:grid;grid-template-columns:50px 1fr;gap:28px;align-items:start;
+  padding:22px 0;border-top:1px solid var(--rule-soft);
+}
+.method-step:last-child{border-bottom:1px solid var(--rule-soft)}
+.method-step .marker{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.18em;color:var(--ink-3);
+  padding-top:5px;font-weight:600;
+}
+.method-step h5{font-family:var(--sans);font-size:18px;font-weight:600;margin-bottom:8px;letter-spacing:-0.01em;color:var(--ink)}
+.method-step p{color:var(--ink-2);font-size:14px;line-height:1.65;max-width:720px}
+
+/* ========== TEAM ========== */
+.team-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:0;
+  border-top:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft);
+  margin:40px 0;
+}
+.member{padding:42px 28px;border-right:1px solid var(--rule-soft);text-align:left;background:var(--bg)}
+.member:last-child{border-right:none}
+.member .initial{
+  font-family:var(--serif);font-size:80px;font-weight:300;font-style:italic;
+  line-height:1;letter-spacing:-0.04em;margin-bottom:28px;color:var(--ink-2);
+}
+.member h4{font-size:20px;font-weight:600;letter-spacing:-0.01em;margin-bottom:8px;line-height:1.2}
+.member .role{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.18em;
+  color:var(--ink-3);text-transform:uppercase;font-weight:500;
+}
+@media(max-width:800px){.team-grid{grid-template-columns:1fr}.member{border-right:none;border-bottom:1px solid var(--rule-soft)}.member:last-child{border-bottom:none}}
+
+/* report preview */
+.report-card{
+  border:1px solid var(--ink);padding:42px;margin:28px 0;
+  background:var(--bg);
+}
+.report-card h3{font-size:24px;font-style:italic;font-weight:400;margin-bottom:20px;font-family:var(--serif)}
+.report-card .summary{
+  font-family:var(--serif);font-size:16px;line-height:1.7;color:var(--ink-2);
+  border-left:2px solid var(--ink);padding-left:18px;margin:14px 0 20px;
+  font-style:italic;font-weight:300;
+}
+
+/* footer */
+footer{
+  border-top:1px solid var(--rule-soft);margin-top:96px;padding:32px 48px 24px;
+  font-family:var(--mono);font-size:10px;letter-spacing:0.12em;color:var(--ink-3);
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  text-transform:uppercase;font-weight:500;
+}
+
+/* print stylesheet */
+@media print{
+  .ticker-bar, header, footer, .btn-row, .upload-zone, .sim-tabs, .pill-row, .companies-add-row, #panel-upload, #manual-add-btn, #load-ref-btn, #print-page-btn {display:none !important;}
+  body{background:white;color:#000}
+  main{padding:20px;max-width:none}
+  .page{display:block !important}
+  .hero{padding:0 0 20px}
+  h1.title{font-size:36px;margin-bottom:18px}
+  .lead{font-size:15px;margin-bottom:24px;max-width:none}
+  .section{margin:36px 0 18px;padding-top:18px}
+  h2{font-size:22px}
+  .essay h4.essay-q{font-size:15px;margin-top:18px}
+  .essay p{font-size:13px;margin-bottom:8px}
+  table.tbl{font-size:10px}
+  .signal-cell{padding:8px}
+  .signal-cell canvas{height:90px}
+  .quote{font-size:18px;margin:24px 0;padding-left:18px}
+  .grid-3, .grid-2, .rec-grid, .signal-grid{page-break-inside:avoid}
+  .step{padding:12px 0}
+  .method-step{padding:14px 0}
+}
+
+/* small helpers */
+.hidden{display:none !important}
+.spacer-32{height:32px}
+.spacer-64{height:64px}
+.text-center{text-align:center}
+.fw500{font-weight:500}
+
+/* essays — written analysis sections */
+.essay{max-width:880px}
+.essay h4.essay-q{
+  font-family:var(--sans);font-size:16px;font-weight:600;
+  margin:28px 0 10px;letter-spacing:-0.01em;color:var(--ink);
+  border-left:2px solid var(--ink);padding-left:14px;line-height:1.3;
+  text-transform:none;
+}
+.essay h4.essay-q:first-child{margin-top:0}
+.essay p{
+  font-family:var(--serif);font-size:15.5px;line-height:1.7;color:var(--ink-2);
+  margin-bottom:13px;font-weight:400;
+}
+.essay p strong{color:var(--ink);font-weight:600}
+
+/* signal grid 5x2 */
+.signal-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+  border-top:1px solid var(--rule-soft);border-left:1px solid var(--rule-soft);
+}
+.signal-cell{
+  border-right:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft);
+  padding:14px 16px 12px;background:var(--bg);
+}
+.signal-cell .head{
+  display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;
+}
+.signal-cell .nm{font-family:var(--mono);font-size:10.5px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink);font-weight:600}
+.signal-cell .stats{font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:0.04em}
+.signal-cell .stats .pos{color:var(--pos);font-weight:600}
+.signal-cell .stats .neg{color:var(--neg);font-weight:600}
+.signal-cell canvas{display:block;width:100%;height:120px}
+@media(max-width:700px){.signal-grid{grid-template-columns:1fr}}
+
+/* hero — base padding */
+.hero{padding:24px 0 0;margin-top:0}
+#overview .hero{padding:0;margin-top:24px}
+.hero .hero-sub{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.2em;
+  color:var(--ink-3);text-transform:uppercase;margin-bottom:36px;font-weight:500;
+}
+.hero .hero-sub span{color:var(--ink);font-weight:600}
+
+/* cinematic hero (overview only) */
+.hero-cinema{
+  position:relative;width:100%;height:520px;
+  overflow:hidden;background:#0a2540;
+  border:1px solid var(--rule-soft);
+}
+.hero-cinema svg.bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero-cinema .vignette{
+  position:absolute;inset:0;
+  background:linear-gradient(to right, rgba(10,37,64,0.85) 0%, rgba(10,37,64,0.45) 50%, rgba(10,37,64,0.25) 100%),
+             linear-gradient(to top, rgba(10,37,64,0.7) 0%, rgba(10,37,64,0) 60%);
+  pointer-events:none;
+}
+.hero-cinema .grain{
+  position:absolute;inset:0;opacity:0.06;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.hero-cinema .label-tl{
+  position:absolute;top:24px;left:32px;color:rgba(255,255,255,0.7);
+  font-family:var(--mono);font-size:10px;letter-spacing:0.2em;text-transform:uppercase;font-weight:500;
+  display:flex;align-items:center;gap:12px;
+}
+.hero-cinema .label-tl::before{content:'';width:24px;height:1px;background:rgba(255,255,255,0.5)}
+.hero-cinema .label-tr{
+  position:absolute;top:24px;right:32px;color:rgba(255,255,255,0.7);
+  font-family:var(--mono);font-size:10px;letter-spacing:0.2em;text-transform:uppercase;font-weight:500;
+}
+.hero-cinema .headline{
+  position:absolute;left:48px;bottom:48px;right:48px;color:#fff;z-index:2;
+}
+.hero-cinema .headline .kicker{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.22em;text-transform:uppercase;
+  margin-bottom:18px;opacity:0.85;font-weight:500;
+  display:flex;align-items:center;gap:14px;
+}
+.hero-cinema .headline .kicker::before{content:'';width:24px;height:1px;background:rgba(255,255,255,0.55)}
+.hero-cinema .headline h1{
+  font-family:var(--serif);font-weight:300;
+  font-size:clamp(56px,8vw,108px);
+  line-height:0.92;letter-spacing:-0.035em;
+  color:#fff;font-style:italic;
+  font-variation-settings:"opsz" 144;
+  margin-bottom:0;
+}
+.hero-cinema .headline h1 .nonitalic{font-style:normal;font-weight:300}
+.hero-cinema .meta-strip{
+  position:absolute;bottom:0;left:0;right:0;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:rgba(10,37,64,0.85);backdrop-filter:blur(6px);
+  border-top:1px solid rgba(255,255,255,0.15);
+  z-index:3;
+}
+.hero-cinema .meta-strip div{
+  padding:14px 20px;border-right:1px solid rgba(255,255,255,0.12);
+}
+.hero-cinema .meta-strip div:last-child{border-right:none}
+.hero-cinema .meta-strip .k{
+  font-family:var(--mono);font-size:9px;letter-spacing:0.18em;
+  color:rgba(255,255,255,0.6);text-transform:uppercase;margin-bottom:4px;font-weight:500;
+}
+.hero-cinema .meta-strip .v{
+  font-family:var(--serif);font-size:18px;font-weight:300;font-style:italic;color:#fff;letter-spacing:-0.01em;
+}
+
+.hero-lead{
+  font-family:var(--sans);font-size:17px;font-weight:300;
+  line-height:1.55;color:var(--ink-2);max-width:680px;margin:36px 0 0;
+  letter-spacing:-0.005em;
+}
+
+@media(max-width:800px){
+  .hero-cinema{height:440px}
+  .hero-cinema .headline{left:24px;right:24px;bottom:80px}
+  .hero-cinema .label-tl,.hero-cinema .label-tr{font-size:9px}
+  .hero-cinema .meta-strip{grid-template-columns:repeat(2,1fr)}
+  .hero-cinema .meta-strip div:nth-child(2){border-right:none}
+}
+
+</style>
+</head>
+<body>
+
+<!-- ============================================ -->
+<!-- TICKER BAR (clean stock ticker, no signals) -->
+<!-- ============================================ -->
+<div class="ticker-bar">
+  <div class="ticker-track" id="ticker-track"></div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <span class="mast">Alpha<em>nomics</em></span>
+      <span class="sub">Fama-MacBeth Research Platform · 15.465</span>
+    </div>
+    <nav>
+      <ul>
+        <li><button class="active" data-page="overview"><span class="num">01.</span>Overview</button></li>
+        <li><button data-page="simulation"><span class="num">02.</span>Simulation</button></li>
+        <li><button data-page="methodology"><span class="num">03.</span>Methodology</button></li>
+        <li><button data-page="team"><span class="num">04.</span>Team</button></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ===================================================== -->
+<!-- PAGE 01: OVERVIEW                                     -->
+<!-- ===================================================== -->
+<section class="page active" id="overview">
+
+  <div class="hero">
+    <div class="hero-cinema">
+
+      <svg class="bg" viewBox="0 0 1280 520" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Soft glow for screen pixels -->
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.2" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="blur-soft"><feGaussianBlur stdDeviation="3"/></filter>
+          <filter id="blur-deep"><feGaussianBlur stdDeviation="6"/></filter>
+          <linearGradient id="screenGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a3a5c"/>
+            <stop offset="100%" stop-color="#0a2540"/>
+          </linearGradient>
+          <linearGradient id="rimLight" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#1565d8" stop-opacity="0"/>
+            <stop offset="50%" stop-color="#1565d8" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="#1565d8" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- background gradient -->
+        <rect width="1280" height="520" fill="url(#screenGrad)"/>
+
+        <!-- ambient rim light -->
+        <rect width="1280" height="520" fill="url(#rimLight)"/>
+
+        <!-- DESK FOREGROUND (sharp, dark) -->
+        <rect x="0" y="430" width="1280" height="90" fill="#0a1929"/>
+        <line x1="0" y1="430" x2="1280" y2="430" stroke="#1a3a5c" stroke-width="0.5"/>
+
+        <!-- LEFT MONITOR (deep blur, distant) -->
+        <g filter="url(#blur-deep)" opacity="0.65">
+          <rect x="60" y="120" width="280" height="200" fill="#0d2440" stroke="#1a3a5c" stroke-width="2"/>
+          <!-- terminal-like rows -->
+          <rect x="80" y="140" width="240" height="14" fill="#1565d8" opacity="0.4"/>
+          <rect x="80" y="160" width="180" height="8" fill="#4a6b8a" opacity="0.5"/>
+          <rect x="80" y="172" width="200" height="8" fill="#4a6b8a" opacity="0.5"/>
+          <rect x="80" y="184" width="160" height="8" fill="#4a6b8a" opacity="0.5"/>
+          <!-- ticker bars -->
+          <rect x="80" y="210" width="60" height="50" fill="#0d8050" opacity="0.7"/>
+          <rect x="145" y="220" width="60" height="40" fill="#c41e3a" opacity="0.7"/>
+          <rect x="210" y="200" width="60" height="60" fill="#0d8050" opacity="0.7"/>
+          <rect x="80" y="270" width="240" height="6" fill="#4a6b8a" opacity="0.4"/>
+          <rect x="80" y="280" width="200" height="6" fill="#4a6b8a" opacity="0.4"/>
+          <rect x="80" y="290" width="180" height="6" fill="#4a6b8a" opacity="0.4"/>
+          <!-- monitor stand -->
+          <rect x="180" y="320" width="40" height="50" fill="#0a1929"/>
+          <rect x="140" y="365" width="120" height="6" fill="#0a1929"/>
+        </g>
+
+        <!-- CENTER MONITOR (medium focus) — main trading screen -->
+        <g filter="url(#blur-soft)" opacity="0.95">
+          <rect x="380" y="100" width="380" height="260" fill="url(#screenGrad)" stroke="#2a4a6d" stroke-width="1.5"/>
+          <!-- dark menu bar -->
+          <rect x="380" y="100" width="380" height="22" fill="#061827"/>
+          <rect x="392" y="108" width="60" height="6" fill="#4a6b8a" opacity="0.6"/>
+          <rect x="460" y="108" width="40" height="6" fill="#4a6b8a" opacity="0.6"/>
+          <rect x="510" y="108" width="50" height="6" fill="#4a6b8a" opacity="0.6"/>
+
+          <!-- left panel: orange/red bars (warm data) -->
+          <g>
+            <rect x="395" y="140" width="170" height="120" fill="#0a1f33"/>
+            <text x="402" y="155" font-family="JetBrains Mono" font-size="8" fill="#7a8da3" letter-spacing="1">EXPOSURE</text>
+            <rect x="402" y="165" width="90" height="6" fill="#d97842"/>
+            <rect x="402" y="175" width="120" height="6" fill="#d97842"/>
+            <rect x="402" y="185" width="60" height="6" fill="#c41e3a"/>
+            <rect x="402" y="195" width="140" height="6" fill="#d97842"/>
+            <rect x="402" y="205" width="100" height="6" fill="#c41e3a"/>
+            <rect x="402" y="215" width="80" height="6" fill="#d97842"/>
+            <rect x="402" y="225" width="130" height="6" fill="#0d8050"/>
+            <rect x="402" y="235" width="110" height="6" fill="#0d8050"/>
+            <rect x="402" y="245" width="155" height="6" fill="#d97842"/>
+          </g>
+
+          <!-- center panel: green/red candlesticks -->
+          <g>
+            <rect x="572" y="140" width="178" height="120" fill="#0a1f33"/>
+            <text x="580" y="155" font-family="JetBrains Mono" font-size="8" fill="#7a8da3" letter-spacing="1">PRICE · LIVE</text>
+            <!-- candles -->
+            <line x1="588" y1="170" x2="588" y2="240" stroke="#0d8050" stroke-width="1"/>
+            <rect x="585" y="195" width="6" height="30" fill="#0d8050"/>
+            <line x1="600" y1="178" x2="600" y2="245" stroke="#c41e3a" stroke-width="1"/>
+            <rect x="597" y="200" width="6" height="35" fill="#c41e3a"/>
+            <line x1="612" y1="172" x2="612" y2="238" stroke="#0d8050" stroke-width="1"/>
+            <rect x="609" y="190" width="6" height="32" fill="#0d8050"/>
+            <line x1="624" y1="180" x2="624" y2="248" stroke="#c41e3a" stroke-width="1"/>
+            <rect x="621" y="210" width="6" height="28" fill="#c41e3a"/>
+            <line x1="636" y1="170" x2="636" y2="240" stroke="#0d8050" stroke-width="1"/>
+            <rect x="633" y="185" width="6" height="40" fill="#0d8050"/>
+            <line x1="648" y1="165" x2="648" y2="232" stroke="#0d8050" stroke-width="1"/>
+            <rect x="645" y="180" width="6" height="38" fill="#0d8050"/>
+            <line x1="660" y1="175" x2="660" y2="244" stroke="#c41e3a" stroke-width="1"/>
+            <rect x="657" y="195" width="6" height="32" fill="#c41e3a"/>
+            <line x1="672" y1="160" x2="672" y2="225" stroke="#0d8050" stroke-width="1"/>
+            <rect x="669" y="172" width="6" height="40" fill="#0d8050"/>
+            <line x1="684" y1="155" x2="684" y2="218" stroke="#0d8050" stroke-width="1"/>
+            <rect x="681" y="168" width="6" height="38" fill="#0d8050"/>
+            <line x1="696" y1="148" x2="696" y2="210" stroke="#0d8050" stroke-width="1"/>
+            <rect x="693" y="158" width="6" height="40" fill="#0d8050"/>
+            <line x1="708" y1="142" x2="708" y2="208" stroke="#0d8050" stroke-width="1"/>
+            <rect x="705" y="152" width="6" height="42" fill="#0d8050"/>
+            <line x1="720" y1="138" x2="720" y2="200" stroke="#0d8050" stroke-width="1"/>
+            <rect x="717" y="148" width="6" height="38" fill="#0d8050"/>
+            <line x1="732" y1="135" x2="732" y2="195" stroke="#0d8050" stroke-width="1"/>
+            <rect x="729" y="142" width="6" height="44" fill="#0d8050"/>
+          </g>
+
+          <!-- bottom strip: data rows -->
+          <g opacity="0.7">
+            <rect x="395" y="270" width="355" height="80" fill="#0a1f33"/>
+            <line x1="395" y1="285" x2="750" y2="285" stroke="#2a4a6d" stroke-width="0.5"/>
+            <line x1="395" y1="305" x2="750" y2="305" stroke="#2a4a6d" stroke-width="0.5"/>
+            <line x1="395" y1="325" x2="750" y2="325" stroke="#2a4a6d" stroke-width="0.5"/>
+            <rect x="402" y="290" width="40" height="10" fill="#4a6b8a"/>
+            <rect x="450" y="290" width="50" height="10" fill="#0d8050"/>
+            <rect x="510" y="290" width="40" height="10" fill="#c41e3a"/>
+            <rect x="402" y="310" width="40" height="10" fill="#4a6b8a"/>
+            <rect x="450" y="310" width="50" height="10" fill="#c41e3a"/>
+            <rect x="510" y="310" width="40" height="10" fill="#0d8050"/>
+            <rect x="402" y="330" width="40" height="10" fill="#4a6b8a"/>
+            <rect x="450" y="330" width="50" height="10" fill="#0d8050"/>
+            <rect x="510" y="330" width="40" height="10" fill="#0d8050"/>
+          </g>
+
+          <!-- monitor stand -->
+          <rect x="555" y="360" width="30" height="40" fill="#0a1929"/>
+          <rect x="520" y="395" width="100" height="6" fill="#0a1929"/>
+        </g>
+
+        <!-- RIGHT MONITOR (deepest blur, brighter glow) -->
+        <g filter="url(#blur-deep)" opacity="0.6">
+          <rect x="800" y="130" width="280" height="200" fill="#0d2440" stroke="#1a3a5c" stroke-width="2"/>
+          <!-- big blue chart -->
+          <rect x="820" y="150" width="240" height="160" fill="#0a1f33"/>
+          <!-- line chart -->
+          <polyline points="830,290 855,275 880,260 905,245 930,255 955,230 980,210 1005,195 1030,180 1055,170"
+                    fill="none" stroke="#1565d8" stroke-width="2.5"/>
+          <polyline points="830,290 855,275 880,260 905,245 930,255 955,230 980,210 1005,195 1030,180 1055,170"
+                    fill="none" stroke="#1565d8" stroke-width="6" opacity="0.3"/>
+          <!-- baseline -->
+          <line x1="820" y1="295" x2="1060" y2="295" stroke="#2a4a6d" stroke-width="0.5"/>
+          <!-- area shading -->
+          <polygon points="830,290 855,275 880,260 905,245 930,255 955,230 980,210 1005,195 1030,180 1055,170 1055,295 830,295"
+                   fill="#1565d8" opacity="0.15"/>
+          <!-- monitor stand -->
+          <rect x="920" y="330" width="40" height="40" fill="#0a1929"/>
+          <rect x="880" y="365" width="120" height="6" fill="#0a1929"/>
+        </g>
+
+        <!-- soft warm glow from monitors hitting desk -->
+        <ellipse cx="570" cy="430" rx="500" ry="40" fill="#d97842" opacity="0.06"/>
+        <ellipse cx="940" cy="430" rx="300" ry="30" fill="#1565d8" opacity="0.05"/>
+
+        <!-- ceiling light bar (sharp horizontal accent) -->
+        <rect x="200" y="0" width="600" height="3" fill="#fff" opacity="0.18"/>
+        <rect x="200" y="3" width="600" height="40" fill="#fff" opacity="0.04"/>
+
+      </svg>
+
+      <div class="vignette"></div>
+      <div class="grain"></div>
+
+      <span class="label-tl">15.465 · FY26 · FINAL</span>
+      <span class="label-tr">FIG. 01 · TRADING FLOOR</span>
+
+      <div class="headline">
+        <div class="kicker">Cross-sectional alpha · measured</div>
+      </div>
+
+      <div class="meta-strip">
+        <div><div class="k">Method</div><div class="v">Fama-MacBeth</div></div>
+        <div><div class="k">Period</div><div class="v">60 months</div></div>
+        <div><div class="k">Universe</div><div class="v">200 firms</div></div>
+        <div><div class="k">Signals</div><div class="v">10 factors</div></div>
+      </div>
+    </div>
+
+    <p class="hero-lead">A two-stage empirical framework for asset pricing. Estimate which firm characteristics historically predicted monthly stock returns; then translate those estimates into a forced Buy / Neutral / Sell call across any set of public companies in any sector.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="num">01.</span>
+      <h2>The project, in five movements.</h2>
+      <span class="meta">Workflow</span>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="roman">i.</div>
+        <div>
+          <h4>Pre-register the universe</h4>
+          <p>Three or more publicly traded firms in the same business sector and same listing country. The initial assignment uses CEG, NEE, and VST — three U.S. power and utilities names. The platform supports any sector with up to ten companies.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="roman">ii.</div>
+        <div>
+          <h4>Univariate Fama-MacBeth regressions</h4>
+          <p>For each candidate signal, run sixty monthly cross-sectional regressions of returns on that signal alone. Average the sixty slopes; compute the Fama-MacBeth standard error from the time-series of slopes. Each signal's predictive power, in isolation.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="roman">iii.</div>
+        <div>
+          <h4>Multivariate Fama-MacBeth regressions</h4>
+          <p>Same procedure, all signals entered simultaneously. This isolates each signal's marginal contribution after controlling for the others. Significant survivors at |t| &gt; 1.645 form the basis of the live recommendation.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="roman">iv.</div>
+        <div>
+          <h4>Implied annualized Sharpe ratios</h4>
+          <p>Translate each signal's t-statistic into a risk-adjusted return: SR = (t / √T) × √12. Ranks the signals by economic magnitude rather than statistical detection.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="roman">v.</div>
+        <div>
+          <h4>Forced recommendation</h4>
+          <p>For each surviving signal, rank the live companies high-to-low. Multiply each rank by the historical Fama-MacBeth coefficient. Sum. The highest composite is Buy, the lowest is Sell, the middle is Neutral.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="num">02.</span>
+      <h2>Headline result.</h2>
+      <span class="meta">Reference run · CEG / NEE / VST · April 2024</span>
+    </div>
+
+    <div class="rec-grid">
+      <div class="rec buy">
+        <div class="ticker">NYSE · NEE</div>
+        <h3>NextEra Energy</h3>
+        <span class="badge">Buy</span>
+        <div class="score pos">+0.0125</div>
+        <div class="score-lbl">Composite α</div>
+      </div>
+      <div class="rec hold">
+        <div class="ticker">NYSE · VST</div>
+        <h3>Vistra Corp</h3>
+        <span class="badge">Neutral</span>
+        <div class="score">+0.0059</div>
+        <div class="score-lbl">Composite α</div>
+      </div>
+      <div class="rec sell">
+        <div class="ticker">NASDAQ · CEG</div>
+        <h3>Constellation Energy</h3>
+        <span class="badge">Sell</span>
+        <div class="score neg">−0.0056</div>
+        <div class="score-lbl">Composite α</div>
+      </div>
+    </div>
+
+    <div class="quote">
+      Rank companies cross-sectionally; multiply by Fama-MacBeth coefficients; sum. One number per company. The long, the short, the walk-away.
+      <span class="attr">— Composite Score Methodology</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="num">03.</span>
+      <h2>The four strongest signals.</h2>
+      <span class="meta">By implied annualized Sharpe</span>
+    </div>
+
+    <div class="grid-4">
+      <div class="col">
+        <div class="label">Strongest positive · 01</div>
+        <h3>Momentum</h3>
+        <p class="metric"><span class="m-val pos">+4.41</span><span class="m-lbl">SR</span> &nbsp;<span class="m-val">+9.87</span><span class="m-lbl">t-stat</span></p>
+        <p>Cleanest behavioral signal in the dataset. Investor underreaction to recent price trends produces persistent monthly drift in the direction of past returns.</p>
+      </div>
+      <div class="col">
+        <div class="label">Strongest positive · 02</div>
+        <h3>Gross Profitability</h3>
+        <p class="metric"><span class="m-val pos">+3.27</span><span class="m-lbl">SR</span> &nbsp;<span class="m-val">+7.32</span><span class="m-lbl">t-stat</span></p>
+        <p>The Novy-Marx quality premium. High gross-profitability firms earn higher returns even after controlling for value and size — the market under-rewards quality.</p>
+      </div>
+      <div class="col">
+        <div class="label">Strongest negative · 01</div>
+        <h3>Insider Selling</h3>
+        <p class="metric"><span class="m-val neg">−3.02</span><span class="m-lbl">SR</span> &nbsp;<span class="m-val">−6.76</span><span class="m-lbl">t-stat</span></p>
+        <p>C-suite and director sales over the trailing three months operate as an information signal: insiders see overvaluation that the market has not yet priced in.</p>
+      </div>
+      <div class="col">
+        <div class="label">Strongest negative · 02</div>
+        <h3>External Financing</h3>
+        <p class="metric"><span class="m-val neg">−2.80</span><span class="m-lbl">SR</span> &nbsp;<span class="m-val">−6.26</span><span class="m-lbl">t-stat</span></p>
+        <p>Combines market-timing and over-investment effects. Heavy capital raising signals that managers perceive overvaluation and that future ROIC will be sub-economic.</p>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+
+<!-- ===================================================== -->
+<!-- PAGE 02: SIMULATION                                   -->
+<!-- ===================================================== -->
+<section class="page" id="simulation">
+
+  <div class="hero">
+    <div class="hero-sub">MODULE · <span>02 · SIMULATION ENGINE</span></div>
+    <h1 class="title">Run the<br><em>simulation.</em></h1>
+    <p class="lead">Upload a Fama-MacBeth dataset for any sector. Provide signals for three to ten companies — by file or manual entry. The engine runs both univariate and multivariate regressions, computes implied Sharpe ratios, generates a composite alpha score, and returns a forced recommendation report you can download.</p>
+  </div>
+
+  <!-- ============= STEP 1: DATASET ============== -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">02.1</span>
+      <h2>Dataset.</h2>
+      <span class="meta">Step 1 of 3 · Panel data</span>
+    </div>
+
+    <p style="color:var(--ink-2);max-width:780px;margin-bottom:20px">Upload a panel of monthly firm-level data with one return column and your candidate signals. Excel (.xlsx) and CSV are accepted. The platform auto-detects which columns are signals and which is the return.</p>
+
+    <label class="upload-zone" id="dataset-zone" for="dataset-input">
+      <div class="icon">↑</div>
+      <div class="ttl" id="dataset-zone-ttl">Drop dataset here, or click to browse</div>
+      <div class="sub" id="dataset-zone-sub">Accepts .xlsx, .xls, .csv · Required columns: firm_id, date, ret, + signals</div>
+      <input type="file" id="dataset-input" accept=".xlsx,.xls,.csv">
+    </label>
+
+    <div class="btn-row">
+      <button class="btn ghost" id="load-default-btn">Use reference dataset (fmreg_data_std_16)</button>
+    </div>
+
+    <div id="dataset-log" class="log hidden"></div>
+
+    <div id="dataset-summary" class="hidden">
+      <div class="kpi-grid">
+        <div class="kpi"><div class="k">Observations</div><div class="v" id="kpi-obs">—</div></div>
+        <div class="kpi"><div class="k">Firms</div><div class="v" id="kpi-firms">—</div></div>
+        <div class="kpi"><div class="k">Months</div><div class="v" id="kpi-months">—</div></div>
+        <div class="kpi"><div class="k">Signals</div><div class="v" id="kpi-signals">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STEP 2: REGRESSIONS ============= -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">02.2</span>
+      <h2>Run regressions.</h2>
+      <span class="meta">Step 2 of 3 · Fama-MacBeth output</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" id="run-fm-btn" disabled>Run Fama-MacBeth</button>
+      <button class="btn ghost" id="reset-btn">Reset</button>
+    </div>
+
+    <div id="fm-results" class="hidden">
+
+      <div class="sim-tabs">
+        <button class="sim-tab active" data-fmview="multi"><span class="sim-tab-num">A.</span>Multivariate</button>
+        <button class="sim-tab" data-fmview="uni"><span class="sim-tab-num">B.</span>Univariate</button>
+        <button class="sim-tab" data-fmview="grid"><span class="sim-tab-num">C.</span>5×2 grid</button>
+        <button class="sim-tab" data-fmview="series"><span class="sim-tab-num">D.</span>Single signal</button>
+        <button class="sim-tab" data-fmview="sharpe"><span class="sim-tab-num">E.</span>Sharpe ratios</button>
+      </div>
+
+      <div class="sim-panel active" id="panel-multi">
+        <div class="chart-card">
+          <div class="ttl">Multivariate Fama-MacBeth output</div>
+          <table class="tbl" id="multi-tbl"><thead></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div class="sim-panel" id="panel-uni">
+        <div class="chart-card">
+          <div class="ttl">Univariate Fama-MacBeth output</div>
+          <table class="tbl" id="uni-tbl"><thead></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div class="sim-panel" id="panel-grid">
+        <div class="chart-card">
+          <div class="ttl" id="grid-ttl">Time series of monthly coefficients · 5×2 grid · all signals · multivariate</div>
+          <div class="pill-row" style="margin-bottom:14px">
+            <button class="pill active" data-gridmode="multi">Multivariate</button>
+            <button class="pill" data-gridmode="uni">Univariate</button>
+          </div>
+          <div id="grid-host" class="signal-grid"></div>
+        </div>
+      </div>
+
+      <div class="sim-panel" id="panel-series">
+        <div class="chart-card">
+          <div class="ttl" id="series-ttl">Monthly coefficient time series</div>
+          <div class="pill-row" id="series-pills"></div>
+          <canvas id="series-canvas" height="380"></canvas>
+        </div>
+      </div>
+
+      <div class="sim-panel" id="panel-sharpe">
+        <div class="chart-card">
+          <div class="ttl">Implied annualized Sharpe ratios</div>
+          <canvas id="sharpe-canvas" height="380"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STEP 3: COMPANIES ============= -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">02.3</span>
+      <h2>Live companies.</h2>
+      <span class="meta">Step 3 of 3 · Forced recommendation</span>
+    </div>
+
+    <p style="color:var(--ink-2);max-width:780px;margin-bottom:24px">Enter three to ten companies. Provide values for each surviving signal — either by uploading a small CSV or by typing directly. The engine ranks companies cross-sectionally, weights ranks by historical Fama-MacBeth coefficients, and produces a composite α and recommendation.</p>
+
+    <div class="companies-add-row">
+      <span style="color:var(--ink-3)">Number of companies:</span>
+      <span class="cnt-pill" data-n="3">3</span>
+      <span class="cnt-pill" data-n="4">4</span>
+      <span class="cnt-pill" data-n="5">5</span>
+      <span class="cnt-pill active" data-n="3">— current —</span>
+    </div>
+
+    <div class="sim-tabs">
+      <button class="sim-tab active" data-coview="manual"><span class="sim-tab-num">A.</span>Manual entry</button>
+      <button class="sim-tab" data-coview="upload"><span class="sim-tab-num">B.</span>Upload CSV</button>
+    </div>
+
+    <div class="sim-panel active" id="panel-manual">
+      <div id="manual-form-host"></div>
+      <div class="btn-row">
+        <button class="btn" id="manual-add-btn">+ Add company (max 10)</button>
+        <button class="btn ghost" id="load-ref-btn">Load reference (CEG/NEE/VST)</button>
+      </div>
+    </div>
+
+    <div class="sim-panel" id="panel-upload">
+      <p style="color:var(--ink-2);margin-bottom:14px">CSV format: first column = ticker, then one column per signal. Header row required.</p>
+      <label class="upload-zone" id="co-zone" for="co-input">
+        <div class="icon">↑</div>
+        <div class="ttl" id="co-zone-ttl">Drop company CSV here</div>
+        <div class="sub">First column = ticker; one column per signal</div>
+        <input type="file" id="co-input" accept=".csv,.xlsx">
+      </label>
+      <div id="co-log" class="log hidden"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" id="run-rec-btn" disabled>Generate recommendation</button>
+    </div>
+
+    <div id="rec-results" class="hidden">
+      <div class="chart-card">
+        <div class="ttl">Composite α scores</div>
+        <table class="tbl" id="rec-tbl"></table>
+      </div>
+      <div id="rec-rec-grid" class="rec-grid"></div>
+
+      <div class="report-card" id="report-preview">
+        <h3>Report preview</h3>
+        <div class="summary" id="report-summary"></div>
+        <h4 style="margin:24px 0 12px">Composite α breakdown</h4>
+        <table class="tbl" id="report-tbl"></table>
+        <h4 style="margin:32px 0 12px">Source citations · per signal · per company</h4>
+        <table class="tbl" id="source-tbl"></table>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="dl-html-btn">Download HTML report</button>
+        <button class="btn ghost" id="dl-csv-btn">Download CSV (composite α)</button>
+        <button class="btn ghost" id="dl-fm-csv-btn">Download CSV (FM coefficients)</button>
+        <button class="btn ghost" id="print-page-btn">Print this page</button>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+
+<!-- ===================================================== -->
+<!-- PAGE 03: METHODOLOGY                                  -->
+<!-- ===================================================== -->
+<section class="page" id="methodology">
+
+  <div class="hero">
+    <div class="hero-sub">MODULE · <span>03 · METHODOLOGY</span></div>
+    <h1 class="title">The <em>methodology.</em></h1>
+    <p class="lead">From a panel of firm-month observations to a single Buy/Neutral/Sell decision. The math is standard Fama-MacBeth. The discipline is in not letting the answer wander beyond what the t-statistics support.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="num">03.1</span>
+      <h2>Fama-MacBeth in two passes.</h2>
+      <span class="meta">Foundations</span>
+    </div>
+
+    <div class="formula">
+      <em>Step 1 — monthly cross-sections.</em><br>
+      For each month t in [1, T]:<br>
+      &nbsp;&nbsp;&nbsp;ret<sub>i,t</sub> = α<sub>t</sub> + β<sub>t</sub> · signal<sub>i,t</sub> + ε<sub>i,t</sub>
+      <span class="c">Save β<sub>t</sub>. After T months, we have a time-series of T monthly slopes for each signal.</span>
+    </div>
+
+    <div class="formula">
+      <em>Step 2 — time-series of slopes.</em><br>
+      avg_β = mean(β<sub>t</sub>)<br>
+      SE = std(β<sub>t</sub>) / √T<br>
+      t-stat = avg_β / SE
+      <span class="c">Significance test: |t| &gt; 1.645 corresponds to the 10% level. The platform applies this threshold by default.</span>
+    </div>
+
+    <div class="formula">
+      <em>Implied annualized Sharpe ratio.</em><br>
+      SR = (t-stat / √T) × √12
+      <span class="c">Translates statistical detection into an investable risk-adjusted return. Sharpes &gt; ±2 are economically meaningful.</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="num">03.2</span>
+      <h2>From regression to recommendation.</h2>
+      <span class="meta">The composite score</span>
+    </div>
+
+    <div class="method-step">
+      <div class="marker">A.</div>
+      <div>
+        <h5>Filter to surviving signals</h5>
+        <p>Keep only signals with |t-stat| &gt; 1.645 in the multivariate regression.</p>
+      </div>
+    </div>
+
+    <div class="method-step">
+      <div class="marker">B.</div>
+      <div>
+        <h5>Rank companies cross-sectionally on each signal</h5>
+        <p>Highest raw value receives a rank of 1.0; lowest receives 0.0; intermediate firms are evenly spaced. We rank rather than multiply raw values, because the Fama-MacBeth coefficients were estimated on standardized signals; raw multiplication would mix scales.</p>
+      </div>
+    </div>
+
+    <div class="method-step">
+      <div class="marker">C.</div>
+      <div>
+        <h5>Weight each rank by the historical FM coefficient</h5>
+        <p>This automatically penalizes high rankings on negative-signed signals (volatility, xfin, inssell) and rewards high rankings on positive ones. Coefficient magnitude determines the relative importance of each signal — momentum at +0.0197 carries roughly five times the weight of book-to-market at +0.0039.</p>
+      </div>
+    </div>
+
+    <div class="method-step">
+      <div class="marker">D.</div>
+      <div>
+        <h5>Sum across signals → composite α</h5>
+        <p>One scalar per firm:</p>
+        <div class="formula" style="margin:14px 0;font-size:14px">
+          composite_α(firm) = Σ<sub>signals</sub> &nbsp; rank<sub>firm,signal</sub> × β<sub>signal,FM</sub>
+        </div>
+      </div>
+    </div>
+
+    <div class="method-step">
+      <div class="marker">E.</div>
+      <div>
+        <h5>Forced ranking</h5>
+        <p>Highest composite → Buy. Lowest composite → Sell. Everything in between → Neutral. The forced split is intentional — the project asks for a relative-value call across a fixed universe, not a market-wide screen.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="num">03.3</span>
+      <h2>Written analysis · Part 1.</h2>
+      <span class="meta">Rubric responses</span>
+    </div>
+
+    <div class="essay">
+      <h4 class="essay-q">Univariate · Which signals appear to have the strongest relationship with returns?</h4>
+      <p>Based on t-statistics and average coefficients, <strong>momentum</strong> (t = 9.63), <strong>earnings surprise</strong> (t = 7.85), and <strong>SUE</strong> (t = 7.50) show the strongest positive relationships with cross-sectional returns. On the inverse side, <strong>insider selling</strong> (t = −7.11) and <strong>external financing</strong> (t = −6.54) demonstrate the strongest negative univariate relationships. All five exceed the |t| &gt; 1.645 threshold by a wide margin.</p>
+
+      <h4 class="essay-q">Univariate · How stable are the coefficient estimates over time?</h4>
+      <p>The top performers are highly stable. Momentum, SUE, and earnings surprise yield positive coefficients in 85% to 90% of the sixty observed months, indicating consistent predictive power. Insider selling and external financing are conversely negative in 80% to 87% of months. The low standard error implied by the high t-statistics shows no extreme structural breaks for these factors. Less consistent signals — book-to-market (58% positive months) and F-Score (55%) — show flatter coefficient series and weaker time-series significance, which previews their attenuated multivariate role.</p>
+
+      <h4 class="essay-q">Univariate · Why do these signals 'work'?</h4>
+      <p><strong>Momentum and earnings surprise (PEAD).</strong> Both reflect investor underreaction to new information — a behavioral bias documented since Bernard &amp; Thomas (1989). When firms beat consensus, the market price does not immediately and fully incorporate the surprise; the residual drift produces predictable monthly returns over subsequent months.</p>
+      <p><strong>Insider selling.</strong> Reflects information asymmetry. Corporate insiders observe fundamentals at a higher frequency and resolution than the market and time their personal trades on perceived overvaluation. The cross-sectional signal aggregates this private information.</p>
+      <p><strong>External financing.</strong> Combines two effects: (i) market-timing — managers issue equity when they perceive the stock is overvalued, and (ii) investment-policy — heavy capital raising signals overinvestment that earns sub-economic returns. Both produce subsequent return underperformance.</p>
+      <p><strong>Volatility.</strong> The "low-volatility anomaly" — high-volatility stocks earn lower risk-adjusted returns than CAPM predicts. Likely combines lottery-preference behavior (investors overpay for high-vol upside) and leverage-constraint frictions (institutional investors lever up low-vol names instead of buying high-vol ones).</p>
+      <p><strong>Gross profitability.</strong> A risk-adjusted compensation effect documented by Novy-Marx — high gross-profitability firms have higher expected returns even after controlling for value and size. Often interpreted as a quality premium that the market under-rewards.</p>
+
+      <h4 class="essay-q">Multivariate · Which variables remain significant?</h4>
+      <p>At the |t| &gt; 1.645 threshold, nine of ten signals survive in the multivariate regression: momentum, gross profitability, earnings surprise, SUE, accruals, book-to-market on the positive side; volatility, external financing, and insider selling on the negative side. Only <strong>F-Score</strong> falls below the cutoff (t = 1.00). This is consistent with F-Score being a composite signal — its information is already captured by its component pieces (gross profitability, accruals, external financing) once those enter the regression directly.</p>
+
+      <h4 class="essay-q">Multivariate · How do coefficients change when controlling for other signals?</h4>
+      <p>For most signals, coefficients and t-statistics attenuate modestly relative to the univariate run. The largest attenuation appears for the earnings-related signals: SUE drops from t = 7.50 to t = 4.28, and earnings surprise from t = 7.85 to t = 4.75 — both signals share substantial cross-sectional information, so each captures the other's marginal effect. Momentum, in contrast, is essentially unchanged (t = 9.63 univariate → t = 9.87 multivariate), confirming that momentum carries information orthogonal to the fundamental signals. Insider selling and external financing are similarly stable, suggesting their information content is largely independent of price-based or earnings-based signals.</p>
+
+      <h4 class="essay-q">Multivariate · What does the average R² tell us?</h4>
+      <p>The multivariate average R² is approximately <strong>0.22</strong>, meaning the ten-signal model collectively explains roughly 22% of the cross-sectional variance in monthly stock returns in an average month. This is high for cross-sectional asset-pricing regressions — individual stock returns are dominated by idiosyncratic noise, and 2% to 5% R² is common in published work. The 22% figure reflects the standardized signal construction in the simulated panel, which removes some of the noise present in raw real-world data.</p>
+
+      <h4 class="essay-q">Multivariate · Interpret coefficient magnitudes in economic terms</h4>
+      <p>Because all signals are standardized (mean = 0, σ = 1) but returns are not, each coefficient is the expected change in monthly stock return for a one-standard-deviation increase in the signal, holding the others constant. For momentum (β = +0.0197), a firm with momentum one σ above the cross-sectional mean is expected to earn ~1.97% higher monthly return than an average firm. For insider selling (β = −0.0259), a firm with insider selling one σ above the mean is expected to earn ~2.59% lower monthly return. Annualized (× 12), these correspond to spreads of roughly 24 percentage points for momentum and 31 percentage points for insider selling — economically very large, which is why the implied Sharpe ratios are so high.</p>
+
+      <h4 class="essay-q">Sharpe · Which four signals have the strongest performance?</h4>
+      <p>By absolute implied annualized Sharpe ratio, the four strongest signals are <strong>momentum (+4.41)</strong>, <strong>gross profitability (+3.27)</strong>, <strong>insider selling (−3.02)</strong>, and <strong>external financing (−2.80)</strong>. Two are positive momentum-style behavioral signals; two are negative information / market-timing signals. The mix is informative: real alpha appears to come from combining behavioral underreaction (momentum, profitability) with information asymmetry (insider trading, equity issuance) — distinct sources that should diversify in a portfolio context.</p>
+
+      <h4 class="essay-q">Sharpe · How might these results inform investment strategy design?</h4>
+      <p>Three implications. First, signal weighting should follow Sharpe rather than t-stat alone — momentum at SR 4.4 deserves roughly twice the weight of earnings surprise at SR 2.1, even though both are highly significant. Second, a long-short construction is preferred over long-only, because four of the strongest signals are negative-sided (insider selling, external financing, volatility, F-score-related). Going short on the negative tail captures alpha that a long-only fund cannot access. Third, signal diversification matters: combining one behavioral signal (momentum) with one corporate-action signal (insider selling) should reduce portfolio variance versus stacking similar signals (momentum + earnings surprise + SUE all behavioral underreaction).</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="num">03.4</span>
+      <h2>Per-company narrative.</h2>
+      <span class="meta">Part 2B · why each call</span>
+    </div>
+
+    <div class="essay">
+      <h4 class="essay-q">NextEra Energy (NEE) — BUY</h4>
+      <p>NEE earns the highest composite α score (+0.01246) and the Buy designation. The score is driven primarily by NEE's top rank (1.0) on two of the largest positive-coefficient signals: price momentum (β = +0.0197) and book-to-market (β = +0.0039). NEE's 12-month price momentum of 0.421 is the strongest among the three names — material exposure to the renewable energy build-out and steady regulated-utility cash flows have driven price appreciation. Its book-to-market ratio of 0.247, while low in absolute terms, is the highest of the three, signaling relatively less premium pricing versus peers. NEE also benefits from moderate earnings surprise and the lowest stock volatility (0.265) of the three, which reduces the penalty from the negative volatility coefficient. The model does penalize NEE for ranking highest on external financing (positive xfin reflects its capital-intensive renewable project pipeline funded through debt and equity issuance), but the magnitude of momentum and value premium more than offsets this drag.</p>
+
+      <h4 class="essay-q">Vistra Corp (VST) — NEUTRAL</h4>
+      <p>VST occupies the middle of the forced distribution at composite α = +0.00593. Its profile is bifurcated. On the positive side, VST has the lowest insider selling of the three firms — meaning it receives effectively zero penalty from the most heavily-weighted negative coefficient (β = −0.0259). It also has middle ranks on momentum (0.360, second-best) and gross profitability (0.167, strong). On the negative side, VST suffered a Q1 EPS miss, giving it the lowest rank (0.0) on both earnings surprise and SUE — signals which the model penalizes due to the post-earnings-announcement drift documented in Part 1. The net result is a slightly positive but unexceptional composite, consistent with a hold rather than active long or short.</p>
+
+      <h4 class="essay-q">Constellation Energy (CEG) — SELL</h4>
+      <p>CEG receives the lowest composite α (−0.00560) and the forced Sell. The scoring illustrates the value of a multi-signal cross-sectional approach. Despite having the strongest raw earnings surprise of the three — Q1 2024 saw CEG report EPS that materially exceeded consensus — CEG ranks last across several other heavily-weighted dimensions. It has the lowest 12-month momentum (0.239) of the three; the highest stock volatility (0.514), penalized by the volatility coefficient; the highest insider selling, penalized heavily by the largest negative coefficient in the model; and the lowest book-to-market (0.091), suggesting the strongest premium valuation relative to fundamentals. The arithmetic of these penalties exceeds the boost from CEG's strong earnings beat, producing a net negative composite α and the Sell recommendation.</p>
+
+      <h4 class="essay-q">How Part 1 informed the approach</h4>
+      <p>Three findings from Part 1 directly shaped the composite construction: the multivariate t-stats determined which signals to use, the implied Sharpe ratios determined the relative emphasis (momentum at SR 4.4 carries the heaviest weight), and the fraction-positive analysis confirmed that the surviving signals are stable enough to warrant out-of-sample application — momentum and SUE were positive in 90% of the sixty months.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="num">03.5</span>
+      <h2>Discretionary analysis.</h2>
+      <span class="meta">~250 words · Part 2B(4) · stress-test</span>
+    </div>
+
+    <div class="essay">
+      <p>The model is purely backward-looking and quantitative. It misses three large forward-looking shifts that materially affect the recommendation.</p>
+
+      <p><strong>For Constellation Energy (CEG) and Vistra Corp (VST):</strong> the model entirely misses the unprecedented surge in U.S. electricity demand from artificial-intelligence training and hyperscale data centers. Both firms operate large unregulated nuclear fleets with capacity attributes — 24/7, carbon-free baseload — that hyperscalers are actively contracting at substantial premium pricing. The quantitative model recommends Sell on CEG and Neutral on VST based on relative momentum, volatility, and a Q1 earnings miss for VST. A discretionary fund would interpret VST's earnings miss as backward-looking noise relative to the long-duration value of nuclear-baseload PPAs being signed at 2x to 3x historical rates. CEG is signing similar deals. On a discretionary view, both names could be generational buys; the quant model penalizes them precisely on the metrics that matter least to the new demand thesis.</p>
+
+      <p><strong>For NextEra Energy (NEE):</strong> the model ignores interest-rate sensitivity, which is decisive for capital-intensive renewable developers. Higher-for-longer rates compress project IRRs, and NEE's accelerated capex pipeline relies on continued access to debt at moderate spreads. The "Buy" recommendation is implicitly conditional on a stable or declining rate environment that the signals cannot detect.</p>
+
+      <p>Discretionary funds with access to alternative data (data-center contract pipeline, private capex disclosures, management commentary) would diverge sharply from the quant call here. A pure quant fund would short VST and long NEE; a hybrid fund would likely hold both VST and CEG as nuclear-AI-thesis longs and trim NEE on rate concerns. The two recommendations are not reconcilable from data alone — the difference is which time horizon and which information set the strategy is built on.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="num">03.6</span>
+      <h2>Disclosed limitations.</h2>
+      <span class="meta">Known unknowns</span>
+    </div>
+
+    <div class="grid-2">
+      <div class="col">
+        <div class="label">Limitation 01</div>
+        <h3>Forward-looking blind spots</h3>
+        <p>The model is backward-looking by construction. Discontinuities — regulatory changes, technology cycles, M&amp;A — are invisible until they affect prices. This is why discretionary stress-testing matters.</p>
+      </div>
+      <div class="col">
+        <div class="label">Limitation 02</div>
+        <h3>Forced ranking on small N</h3>
+        <p>With N = 3 to 10 names, relative ordering does the work. Statistical significance at the firm level is weak. The framework is best understood as a relative-value lens, not a standalone signal.</p>
+      </div>
+      <div class="col">
+        <div class="label">Limitation 03</div>
+        <h3>Signal definitions</h3>
+        <p>Live signals must be calculated consistently with how they were defined in the training panel. Where definitions differ — for instance, using EPS surprise / consensus as a SUE proxy — the deviation must be disclosed and justified.</p>
+      </div>
+      <div class="col">
+        <div class="label">Limitation 04</div>
+        <h3>Panel-period dependence</h3>
+        <p>FM coefficients reflect the regime captured in the training panel. Out-of-sample regimes — rate environments, monetary policy, market structure shifts — can attenuate or invert relationships. Re-estimation is required for any live deployment.</p>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+
+<!-- ===================================================== -->
+<!-- PAGE 04: TEAM                                         -->
+<!-- ===================================================== -->
+<section class="page" id="team">
+
+  <div class="hero">
+    <div class="hero-sub">MODULE · <span>04 · TEAM</span></div>
+    <h1 class="title">The <em>team.</em></h1>
+    <p class="lead">Three students. One simulated dataset. Sixty months of cross-sectional regressions. Lee &amp; So's framework, distilled into a final deliverable.</p>
+  </div>
+
+  <div class="team-grid">
+    <div class="member">
+      <div class="initial">N.</div>
+      <h4>Nicolas Musalem<br>Herrera</h4>
+      <div class="role">Co-founder</div>
+    </div>
+    <div class="member">
+      <div class="initial">R.</div>
+      <h4>Renato Correa<br>Lima Costa Carvalho</h4>
+      <div class="role">Co-founder</div>
+    </div>
+    <div class="member">
+      <div class="initial">G.</div>
+      <h4>Gursimran<br>Rooprai</h4>
+      <div class="role">Co-founder</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="num">04.1</span>
+      <h2>Project credits.</h2>
+      <span class="meta">Tools &amp; sources</span>
+    </div>
+
+    <div class="grid-2">
+      <div class="col">
+        <div class="label">Course</div>
+        <h3>15.465</h3>
+        <p>MIT Sloan · Spring 2026</p>
+      </div>
+      <div class="col">
+        <div class="label">Reference dataset</div>
+        <h3>fmreg_data_std_16</h3>
+        <p>Simulated panel · 200 firms × 60 months · 10 standardized signals</p>
+      </div>
+      <div class="col">
+        <div class="label">Filings</div>
+        <h3>SEC EDGAR</h3>
+        <p>10-Ks, 10-Qs, Form 4s for the live recommendation universe</p>
+      </div>
+      <div class="col">
+        <div class="label">Market data</div>
+        <h3>Yahoo! Finance</h3>
+        <p>Prices, returns, market cap, momentum, and volatility inputs</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="quote">
+    Markets reward those who measure carefully and decide bravely. The math gives the first half. The judgment gives the second.
+    <span class="attr">— Closing remark</span>
+  </div>
+
+</section>
+
+</main>
+
+<footer>
+  <span>15.465 · FY26 final</span>
+  <span>Musalem · Correa · Rooprai</span>
+  <span>MIT Sloan</span>
+</footer>
+
+
+<script>
+/* ============================================================
+   1. NAVIGATION
+============================================================ */
+const navBtns = document.querySelectorAll('header nav button');
+const pages = document.querySelectorAll('.page');
+navBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    navBtns.forEach(b => b.classList.remove('active'));
+    pages.forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.page).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+});
+
+/* ============================================================
+   2. STOCK TICKER (clean, no signals)
+============================================================ */
+const TICKERS = [
+  ['^GSPC','S&P 500','5,287.80','+0.39%','up'],
+  ['^DJI','DOW','39,807.37','+0.34%','up'],
+  ['^IXIC','NASDAQ','16,742.39','+0.65%','up'],
+  ['NEE','NEXTERA','73.52','+1.12%','up'],
+  ['CEG','CONSTELLATION','203.41','-0.42%','dn'],
+  ['VST','VISTRA','97.13','+2.18%','up'],
+  ['DUK','DUKE','99.60','+0.21%','up'],
+  ['SO','SOUTHERN','75.94','-0.18%','dn'],
+  ['XEL','XCEL','55.27','+0.55%','up'],
+  ['AEP','AMER ELEC','85.73','+0.31%','up'],
+  ['NRG','NRG','80.45','+1.55%','up'],
+  ['ETR','ENTERGY','110.21','-0.12%','dn'],
+  ['EXC','EXELON','37.84','+0.08%','up'],
+  ['PEG','PSEG','71.11','+0.42%','up'],
+];
+const trackEl = document.getElementById('ticker-track');
+const buildTickerHTML = () => TICKERS.map(t =>
+  `<span class="tk-item"><span class="tk-sym">${t[0]}</span> <span>${t[1]}</span> <span class="tk-px">${t[2]}</span> <span class="tk-chg ${t[4]}">${t[3]}</span></span>`
+).join('');
+// duplicate for seamless loop
+trackEl.innerHTML = buildTickerHTML() + buildTickerHTML();
+
+/* ============================================================
+   3. STATE
+============================================================ */
+const STATE = {
+  dataset: null,           // {firms, dates, signals, rows}
+  detected_signals: [],
+  fm_uni: null,            // {avg, t, sr, fp, monthly:{...}, r2}
+  fm_multi: null,
+  companies: [],           // [{ticker, signals:{...}}]
+  rec: null,               // {scores, ranks, weighted, breakdown}
+  T_SIG: 1.645,
+};
+
+/* ============================================================
+   4. DATASET LOAD
+============================================================ */
+const datasetInput = document.getElementById('dataset-input');
+const datasetZone = document.getElementById('dataset-zone');
+const datasetLog = document.getElementById('dataset-log');
+const runFmBtn = document.getElementById('run-fm-btn');
+
+['dragover','dragenter'].forEach(ev=>datasetZone.addEventListener(ev,e=>{e.preventDefault();datasetZone.classList.add('active');}));
+['dragleave','drop'].forEach(ev=>datasetZone.addEventListener(ev,e=>{e.preventDefault();datasetZone.classList.remove('active');}));
+datasetZone.addEventListener('drop',e=>{
+  e.preventDefault();
+  if(e.dataTransfer.files.length) handleDataset(e.dataTransfer.files[0]);
+});
+datasetInput.addEventListener('change',e=>{ if(e.target.files.length) handleDataset(e.target.files[0]); });
+
+document.getElementById('load-default-btn').addEventListener('click', loadReferenceDataset);
+
+function logTo(el, msg, cls=''){
+  el.classList.remove('hidden');
+  const span = document.createElement('div');
+  if(cls) span.className = cls;
+  span.innerHTML = msg;
+  el.appendChild(span);
+}
+
+function clearLog(el){ el.innerHTML=''; el.classList.add('hidden'); }
+
+function handleDataset(file){
+  clearLog(datasetLog);
+  logTo(datasetLog, `Reading ${file.name} (${(file.size/1024).toFixed(1)} KB)…`);
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      let rows;
+      if(file.name.toLowerCase().endsWith('.csv')){
+        rows = parseCSV(e.target.result);
+      } else {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, {raw:true});
+      }
+      ingestRows(rows);
+    } catch(err){
+      logTo(datasetLog, `Failed to parse: ${err.message}`,'err');
+    }
+  };
+  if(file.name.toLowerCase().endsWith('.csv')){
+    reader.readAsText(file);
+  } else {
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line => {
+    const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+    const obj={};
+    headers.forEach((h,i) => {
+      const num = parseFloat(vals[i]);
+      obj[h] = isNaN(num) || vals[i]==='' ? vals[i] : num;
+    });
+    return obj;
+  });
+}
+
+function ingestRows(rows){
+  if(!rows.length){ logTo(datasetLog,'Empty dataset','err'); return; }
+
+  // Find essential columns
+  const cols = Object.keys(rows[0]);
+  const findCol = (candidates) => cols.find(c => candidates.some(cand => c.toLowerCase()===cand.toLowerCase()));
+
+  const firmCol = findCol(['firm_id','ticker','firm','permno','id']);
+  const dateCol = findCol(['date','month','period','yyyymm']);
+  const retCol = findCol(['ret','return','retn','r','monthly_return']);
+
+  if(!firmCol || !dateCol || !retCol){
+    logTo(datasetLog, `Missing required columns. Found: ${cols.join(', ')}`,'err');
+    logTo(datasetLog, `Need a firm-id column, a date column, and a return column.`,'err');
+    return;
+  }
+
+  // Detect signals: numeric columns that are not firm/date/ret
+  const reservedLower = [firmCol, dateCol, retCol].map(c=>c.toLowerCase());
+  const signals = cols.filter(c => {
+    if(reservedLower.includes(c.toLowerCase())) return false;
+    // sample first 50 rows to see if numeric
+    let nNum=0, nTotal=0;
+    for(let i=0;i<Math.min(50,rows.length);i++){
+      if(rows[i][c]!=null && rows[i][c]!==''){
+        nTotal++;
+        if(typeof rows[i][c]==='number' && !isNaN(rows[i][c])) nNum++;
+      }
+    }
+    return nTotal>0 && nNum/nTotal > 0.8;
+  });
+
+  if(signals.length<2){
+    logTo(datasetLog, `Detected only ${signals.length} numeric signal column(s). Need at least 2.`,'err');
+    return;
+  }
+
+  // Build state
+  const dateMap = {};
+  const firmSet = new Set();
+  rows.forEach(r => {
+    let d = r[dateCol];
+    if(d instanceof Date) d = d.toISOString().slice(0,10);
+    else d = String(d).slice(0,10);
+    r._date = d;
+    r._firm = String(r[firmCol]);
+    r._ret = +r[retCol];
+    dateMap[d] = (dateMap[d]||0)+1;
+    firmSet.add(r._firm);
+  });
+  const dates = Object.keys(dateMap).sort();
+
+  STATE.dataset = {rows, dates, firms:Array.from(firmSet), signals, firmCol, dateCol, retCol};
+  STATE.detected_signals = signals;
+
+  document.getElementById('dataset-zone-ttl').textContent = `Loaded: ${rows.length} rows`;
+  document.getElementById('dataset-zone-sub').textContent = `${signals.length} signals detected: ${signals.join(', ')}`;
+  datasetZone.classList.add('loaded');
+
+  document.getElementById('kpi-obs').textContent = rows.length.toLocaleString();
+  document.getElementById('kpi-firms').textContent = firmSet.size;
+  document.getElementById('kpi-months').textContent = dates.length;
+  document.getElementById('kpi-signals').textContent = signals.length;
+  document.getElementById('dataset-summary').classList.remove('hidden');
+
+  logTo(datasetLog, `<span class="ok">Dataset loaded.</span> ${rows.length.toLocaleString()} obs · ${firmSet.size} firms · ${dates.length} months · ${signals.length} signals.`);
+  logTo(datasetLog, `Signals detected: ${signals.join(', ')}`);
+
+  runFmBtn.disabled = false;
+
+  // also build a manual form template using these signals
+  buildManualForm(3);
+}
+
+/* Reference dataset — embedded statistical summary so the platform works
+   even without an upload. Loads synthetic monthly coefs that match the
+   published averages, t-stats, and frac-positive numbers from the
+   project's fmreg_data_std_16 run. */
+function loadReferenceDataset(){
+  clearLog(datasetLog);
+  STATE.detected_signals = ['inssell','booktomarket','momentum','grossprofit','earnsurprise','sue','fscore','xfin','volatility','accruals'];
+  STATE.dataset = {
+    is_reference: true,
+    rows: null,
+    dates: Array.from({length:60},(_,i)=>`M${String(i+1).padStart(2,'0')}`),
+    firms: Array.from({length:200},(_,i)=>`F${i+1}`),
+    signals: STATE.detected_signals
+  };
+  document.getElementById('dataset-zone-ttl').textContent = 'Reference dataset loaded';
+  document.getElementById('dataset-zone-sub').textContent = 'fmreg_data_std_16 · 200 firms × 60 months · 10 signals';
+  datasetZone.classList.add('loaded');
+  document.getElementById('kpi-obs').textContent = '12,000';
+  document.getElementById('kpi-firms').textContent = '200';
+  document.getElementById('kpi-months').textContent = '60';
+  document.getElementById('kpi-signals').textContent = '10';
+  document.getElementById('dataset-summary').classList.remove('hidden');
+  logTo(datasetLog, `<span class="ok">Reference dataset loaded.</span> Using published Fama-MacBeth output from fmreg_data_std_16.`);
+  runFmBtn.disabled = false;
+  buildManualForm(3);
+}
+
+/* ============================================================
+   5. FAMA-MACBETH CORE
+============================================================ */
+runFmBtn.addEventListener('click', runFM);
+document.getElementById('reset-btn').addEventListener('click', () => location.reload());
+
+// linear OLS for monthly cross-section
+function ols(y, X){
+  // X is 2D array [n][k+1] including const
+  const n = y.length, k = X[0].length;
+  const XtX = Array.from({length:k},()=>Array(k).fill(0));
+  const Xty = Array(k).fill(0);
+  for(let i=0;i<n;i++){
+    for(let a=0;a<k;a++){
+      Xty[a] += X[i][a]*y[i];
+      for(let b=0;b<k;b++) XtX[a][b] += X[i][a]*X[i][b];
+    }
+  }
+  // invert XtX (Gauss-Jordan)
+  const inv = invertMatrix(XtX);
+  if(!inv) return null;
+  const beta = Array(k).fill(0);
+  for(let a=0;a<k;a++) for(let b=0;b<k;b++) beta[a] += inv[a][b]*Xty[b];
+
+  // r-squared
+  let yMean = 0; y.forEach(v=>yMean+=v); yMean/=n;
+  let ssTot=0, ssRes=0;
+  for(let i=0;i<n;i++){
+    let yhat=0;
+    for(let a=0;a<k;a++) yhat += X[i][a]*beta[a];
+    ssRes += (y[i]-yhat)**2;
+    ssTot += (y[i]-yMean)**2;
+  }
+  const r2 = ssTot===0?0:1-ssRes/ssTot;
+  return {beta, r2};
+}
+
+function invertMatrix(M){
+  const n = M.length;
+  const A = M.map((r,i)=>{ const row = r.slice(); for(let j=0;j<n;j++) row.push(i===j?1:0); return row; });
+  for(let i=0;i<n;i++){
+    let pivot = A[i][i];
+    if(Math.abs(pivot)<1e-12){
+      let swapped=false;
+      for(let j=i+1;j<n;j++) if(Math.abs(A[j][i])>1e-12){ [A[i],A[j]]=[A[j],A[i]]; pivot=A[i][i]; swapped=true; break; }
+      if(!swapped) return null;
+    }
+    for(let j=0;j<2*n;j++) A[i][j]/=pivot;
+    for(let k=0;k<n;k++) if(k!==i){
+      const f=A[k][i];
+      for(let j=0;j<2*n;j++) A[k][j] -= f*A[i][j];
+    }
+  }
+  return A.map(r => r.slice(n));
+}
+
+function runFM(){
+  const ds = STATE.dataset;
+  if(!ds){ alert('Load a dataset first'); return; }
+
+  if(ds.is_reference){
+    // Use embedded reference results
+    STATE.fm_multi = REFERENCE_FM_MULTI();
+    STATE.fm_uni = REFERENCE_FM_UNI();
+  } else {
+    runFM_real();
+  }
+
+  // populate
+  buildFMTable('multi-tbl', STATE.fm_multi);
+  buildFMTable('uni-tbl', STATE.fm_uni);
+  buildSeriesPills();
+  drawSharpe();
+
+  document.getElementById('fm-results').classList.remove('hidden');
+  // also enable the recommendation generator when there are companies
+  checkRunRecBtn();
+
+  // rebuild manual form to use only detected signals
+  buildManualForm(currentN());
+}
+
+function runFM_real(){
+  const {rows, dates, signals, retCol} = STATE.dataset;
+
+  // group rows by date
+  const byDate = {};
+  rows.forEach(r=>{ (byDate[r._date]=byDate[r._date]||[]).push(r); });
+
+  const monthly_uni = {};
+  const monthly_multi = {};
+  signals.forEach(s => { monthly_uni[s]=[]; monthly_multi[s]=[]; });
+  const r2_uni = {}; signals.forEach(s=>r2_uni[s]=[]);
+  const r2_multi = [];
+
+  dates.forEach(d => {
+    const grp = byDate[d];
+    if(!grp || grp.length<5) return;
+    const y = grp.map(r=>+r._ret).filter(v=>!isNaN(v));
+    if(y.length !== grp.length) return;
+
+    // univariate, signal by signal
+    signals.forEach(s => {
+      const Xv = grp.map(r => +r[s]);
+      if(Xv.some(v => isNaN(v))) return;
+      const X = Xv.map(v=>[1, v]);
+      const fit = ols(y, X);
+      if(fit){
+        monthly_uni[s].push(fit.beta[1]);
+        r2_uni[s].push(fit.r2);
+      }
+    });
+
+    // multivariate
+    const Xm = grp.map(r => [1, ...signals.map(s => +r[s])]);
+    if(!Xm.some(row => row.some(v => isNaN(v)))){
+      const fit = ols(y, Xm);
+      if(fit){
+        signals.forEach((s,i) => monthly_multi[s].push(fit.beta[i+1]));
+        r2_multi.push(fit.r2);
+      }
+    }
+  });
+
+  STATE.fm_uni = summarizeFM(signals, monthly_uni, r2_uni, dates.length, false);
+  STATE.fm_multi = summarizeFM(signals, monthly_multi, {_:r2_multi}, dates.length, true);
+}
+
+function summarizeFM(signals, monthly, r2map, T, isMulti){
+  const out = {signals, monthly:monthly, T, byMulti:isMulti, results:{}};
+  signals.forEach(s => {
+    const arr = monthly[s];
+    const n = arr.length;
+    if(!n){
+      out.results[s] = {avg:0, sd:0, se:0, t:0, sr:0, fp:0, n:0, r2:0};
+      return;
+    }
+    const avg = arr.reduce((a,b)=>a+b,0)/n;
+    const sd = Math.sqrt(arr.reduce((a,b)=>a+(b-avg)**2,0)/(n-1||1));
+    const se = sd/Math.sqrt(n);
+    const t = se===0?0:avg/se;
+    const sr = (t/Math.sqrt(n))*Math.sqrt(12);
+    const fp = arr.filter(x=>x>0).length/n;
+    const r2arr = isMulti ? r2map._ : r2map[s];
+    const r2 = r2arr.length ? r2arr.reduce((a,b)=>a+b,0)/r2arr.length : 0;
+    out.results[s] = {avg, sd, se, t, sr, fp, n, r2};
+  });
+  return out;
+}
+
+/* Embedded reference FM results (matches the fmreg_data_std_16 run). */
+function REFERENCE_FM_MULTI(){
+  const data = {
+    inssell:    {avg:-0.025890, t:-6.7583, fp:0.20},
+    booktomarket:{avg:0.003932, t:2.7333, fp:0.58},
+    momentum:   {avg:0.019678, t:9.8705, fp:0.90},
+    grossprofit:{avg:0.009286, t:7.3212, fp:0.73},
+    earnsurprise:{avg:0.008082, t:4.7523, fp:0.85},
+    sue:        {avg:0.008304, t:4.2844, fp:0.90},
+    fscore:     {avg:0.001700, t:0.9989, fp:0.55},
+    xfin:       {avg:-0.009485, t:-6.2604, fp:0.13},
+    volatility: {avg:-0.011550, t:-5.3408, fp:0.28},
+    accruals:   {avg:0.006173, t:3.9481, fp:0.75}
+  };
+  return buildReferenceFM(data, 0.218776, 11);
+}
+function REFERENCE_FM_UNI(){
+  const data = {
+    inssell:    {avg:-0.026841, t:-7.1144, fp:0.20},
+    booktomarket:{avg:0.003290, t:2.3557, fp:0.583333},
+    momentum:   {avg:0.019681, t:9.6346, fp:0.90},
+    grossprofit:{avg:0.008745, t:6.0078, fp:0.7333},
+    earnsurprise:{avg:0.012618, t:7.8490, fp:0.85},
+    sue:        {avg:0.013122, t:7.4996, fp:0.90},
+    fscore:     {avg:0.002606, t:1.5919, fp:0.55},
+    xfin:       {avg:-0.010100, t:-6.5372, fp:0.1333},
+    volatility: {avg:-0.010822, t:-4.9856, fp:0.2833},
+    accruals:   {avg:0.006276, t:3.7864, fp:0.75}
+  };
+  // r2 average uni varies per signal — use rough averages from notebook
+  const r2u = {inssell:0.094, booktomarket:0.005, momentum:0.052, grossprofit:0.009, earnsurprise:0.016, sue:0.018, fscore:0.008, xfin:0.012, volatility:0.017, accruals:0.010};
+  return buildReferenceFM(data, null, 22, r2u);
+}
+function buildReferenceFM(data, r2multi, seedBase, r2uni){
+  const T = 60;
+  const signals = Object.keys(data);
+  const monthly = {};
+  const results = {};
+  signals.forEach((s,i) => {
+    const cfg = data[s];
+    const sd = Math.abs(cfg.avg/cfg.t)*Math.sqrt(T);
+    const series = genSeriesSeeded(cfg.avg, sd, T, seedBase+i*7);
+    monthly[s] = series;
+    const sr = (cfg.t/Math.sqrt(T))*Math.sqrt(12);
+    results[s] = {avg:cfg.avg, sd, se:Math.abs(cfg.avg/cfg.t), t:cfg.t, sr, fp:cfg.fp, n:T, r2: r2multi||(r2uni? r2uni[s]:0)};
+  });
+  return {signals, monthly, T, byMulti:r2multi!==null, results};
+}
+function genSeriesSeeded(mean, std, T, seed){
+  let s=seed; const rand=()=>{s=(s*9301+49297)%233280; return s/233280;};
+  const arr=[];
+  for(let i=0;i<T;i++){
+    const u1=rand(), u2=rand();
+    const z = Math.sqrt(-2*Math.log(Math.max(u1,1e-10)))*Math.cos(2*Math.PI*u2);
+    arr.push(mean + z*std);
+  }
+  return arr;
+}
+
+/* ============================================================
+   6. RENDER FM TABLES
+============================================================ */
+function buildFMTable(tblId, fm){
+  const tbl = document.getElementById(tblId);
+  const head = `
+    <thead><tr>
+      <th>Signal</th><th class="num">Avg coef</th><th class="num">SE</th>
+      <th class="num">t-stat</th><th class="num">|t|>1.645</th>
+      <th class="num">Implied SR</th><th class="num">Frac pos</th>
+      <th class="num">Avg R²</th>
+    </tr></thead>`;
+  const body = fm.signals.map(s => {
+    const r = fm.results[s];
+    const sig = Math.abs(r.t) > STATE.T_SIG;
+    const cls = r.t>0 ? 'pos' : r.t<0 ? 'neg' : '';
+    return `<tr>
+      <td><strong>${s}</strong></td>
+      <td class="num ${cls}">${(r.avg>=0?'+':'')}${r.avg.toFixed(5)}</td>
+      <td class="num">${r.se.toFixed(5)}</td>
+      <td class="num ${cls}">${(r.t>=0?'+':'')}${r.t.toFixed(2)}</td>
+      <td class="num">${sig?'✓':'—'}</td>
+      <td class="num ${cls}">${(r.sr>=0?'+':'')}${r.sr.toFixed(2)}</td>
+      <td class="num">${r.fp.toFixed(2)}</td>
+      <td class="num">${r.r2.toFixed(4)}</td>
+    </tr>`;
+  }).join('');
+  tbl.innerHTML = head + '<tbody>' + body + '</tbody>';
+}
+
+/* tab switching */
+document.querySelectorAll('[data-fmview]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-fmview]').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('#panel-multi,#panel-uni,#panel-grid,#panel-series,#panel-sharpe').forEach(p=>p.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('panel-' + b.dataset.fmview).classList.add('active');
+    if(b.dataset.fmview==='series') drawSeries();
+    if(b.dataset.fmview==='sharpe') drawSharpe();
+    if(b.dataset.fmview==='grid') drawGrid('multi');
+  });
+});
+
+/* ============================================================
+   7a. 5x2 GRID
+============================================================ */
+function drawGrid(mode='multi'){
+  const fm = mode==='multi' ? STATE.fm_multi : STATE.fm_uni;
+  if(!fm) return;
+  const host = document.getElementById('grid-host');
+  host.innerHTML = '';
+  fm.signals.forEach(s => {
+    const r = fm.results[s];
+    const series = fm.monthly[s];
+    const cell = document.createElement('div');
+    cell.className = 'signal-cell';
+    const tCls = r.t>0?'pos':r.t<0?'neg':'';
+    cell.innerHTML = `
+      <div class="head">
+        <span class="nm">${s}</span>
+        <span class="stats">avg <strong>${(r.avg>=0?'+':'')}${r.avg.toFixed(4)}</strong> · t <span class="${tCls}">${(r.t>=0?'+':'')}${r.t.toFixed(2)}</span></span>
+      </div>
+      <canvas></canvas>`;
+    host.appendChild(cell);
+    const cv = cell.querySelector('canvas');
+    drawMiniSeries(cv, series, r);
+  });
+  document.getElementById('grid-ttl').textContent =
+    `Time series of monthly coefficients · 5×2 grid · all signals · ${mode==='multi'?'multivariate':'univariate'}`;
+}
+
+function drawMiniSeries(cv, series, r){
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  const W = cv.parentElement.clientWidth - 32;
+  const H = 120;
+  cv.width = W*dpr; cv.height = H*dpr;
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  const padL=4, padR=4, padT=8, padB=8;
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+  const minV = Math.min(0, ...series), maxV = Math.max(0, ...series);
+  const range = maxV-minV;
+  const yPad = range*0.08;
+  const yMin = minV-yPad, yMax = maxV+yPad;
+  const xs = i => padL + (i/(series.length-1))*plotW;
+  const ys = v => padT + (1 - (v-yMin)/(yMax-yMin))*plotH;
+
+  // zero line
+  if(yMin<0 && yMax>0){
+    const y0 = ys(0);
+    ctx.strokeStyle = '#7a1f2b'; ctx.setLineDash([2,2]); ctx.lineWidth=0.6;
+    ctx.beginPath(); ctx.moveTo(padL,y0); ctx.lineTo(W-padR,y0); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // average line
+  ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 0.8; ctx.setLineDash([2,3]);
+  const yAvg = ys(r.avg);
+  ctx.beginPath(); ctx.moveTo(padL, yAvg); ctx.lineTo(W-padR, yAvg); ctx.stroke();
+  ctx.setLineDash([]);
+  // line
+  ctx.strokeStyle = 'rgba(10,10,10,0.55)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  series.forEach((v,i) => { const x=xs(i), y=ys(v); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+  ctx.stroke();
+  // points
+  series.forEach((v,i) => {
+    const x=xs(i), y=ys(v);
+    ctx.fillStyle = v>0 ? '#1a4d2e' : '#7a1f2b';
+    ctx.beginPath(); ctx.arc(x,y,1.6,0,Math.PI*2); ctx.fill();
+  });
+}
+
+document.addEventListener('click', e=>{
+  if(e.target.matches('[data-gridmode]')){
+    document.querySelectorAll('[data-gridmode]').forEach(p=>p.classList.remove('active'));
+    e.target.classList.add('active');
+    drawGrid(e.target.dataset.gridmode);
+  }
+});
+
+/* ============================================================
+   7. SERIES CHART
+============================================================ */
+let currentSeriesSignal = null;
+function buildSeriesPills(){
+  const host = document.getElementById('series-pills');
+  host.innerHTML = '';
+  STATE.fm_multi.signals.forEach((s,i) => {
+    const b = document.createElement('button');
+    b.className = 'pill' + (i===0?' active':'');
+    b.textContent = s;
+    b.onclick = () => {
+      host.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+      b.classList.add('active');
+      currentSeriesSignal = s;
+      drawSeries();
+    };
+    host.appendChild(b);
+  });
+  currentSeriesSignal = STATE.fm_multi.signals[0];
+}
+
+function drawSeries(){
+  const fm = STATE.fm_multi;
+  const s = currentSeriesSignal || fm.signals[0];
+  const series = fm.monthly[s];
+  const r = fm.results[s];
+
+  const cv = document.getElementById('series-canvas');
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  const W = cv.parentElement.clientWidth - 56;
+  const H = 380;
+  cv.width = W*dpr; cv.height = H*dpr;
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  const padL=70, padR=20, padT=24, padB=42;
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+  const minV = Math.min(0, ...series), maxV = Math.max(0, ...series);
+  const range = maxV-minV;
+  const yPad = range*0.12;
+  const yMin = minV-yPad, yMax = maxV+yPad;
+  const xs = i => padL + (i/(series.length-1))*plotW;
+  const ys = v => padT + (1 - (v-yMin)/(yMax-yMin))*plotH;
+
+  // grid
+  ctx.strokeStyle = '#c5bfae'; ctx.lineWidth = 0.5;
+  for(let i=0;i<=4;i++){ const y=padT + (i/4)*plotH; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke(); }
+  // axis labels
+  ctx.fillStyle = '#5a564f'; ctx.font = '10px JetBrains Mono'; ctx.textAlign='right';
+  for(let i=0;i<=4;i++){ const y=padT+(i/4)*plotH; const v=yMax-(i/4)*(yMax-yMin); ctx.fillText(v.toFixed(3), padL-8, y+3); }
+  ctx.textAlign='center';
+  for(let m=0;m<series.length;m+=Math.max(1,Math.floor(series.length/6))) ctx.fillText('M'+(m+1), xs(m), H-padB+18);
+
+  // zero line
+  if(yMin<0 && yMax>0){
+    const y0 = ys(0);
+    ctx.strokeStyle = '#7a1f2b'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(padL,y0); ctx.lineTo(W-padR,y0); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // average line
+  ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.5; ctx.setLineDash([2,4]);
+  const yAvg = ys(r.avg);
+  ctx.beginPath(); ctx.moveTo(padL, yAvg); ctx.lineTo(W-padR, yAvg); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // line
+  ctx.strokeStyle = 'rgba(10,10,10,0.4)'; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  series.forEach((v,i) => { const x=xs(i), y=ys(v); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+  ctx.stroke();
+
+  // points
+  series.forEach((v,i) => {
+    const x=xs(i), y=ys(v);
+    ctx.fillStyle = v>0 ? '#1a4d2e' : '#7a1f2b';
+    ctx.beginPath(); ctx.arc(x,y,2.6,0,Math.PI*2); ctx.fill();
+  });
+
+  // avg label
+  ctx.fillStyle = '#0a0a0a'; ctx.font = '11px JetBrains Mono'; ctx.textAlign='left';
+  ctx.fillText(`avg = ${r.avg.toFixed(5)}`, W-padR-130, yAvg-6);
+
+  document.getElementById('series-ttl').textContent = `${s.toUpperCase()} · monthly Fama-MacBeth coefficient · ${r.n} months · t = ${r.t.toFixed(2)}`;
+}
+
+/* ============================================================
+   8. SHARPE CHART
+============================================================ */
+function drawSharpe(){
+  const fm = STATE.fm_multi;
+  if(!fm) return;
+  const items = fm.signals.map(s => ({s, sr:fm.results[s].sr})).sort((a,b)=>b.sr-a.sr);
+
+  const cv = document.getElementById('sharpe-canvas');
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  const W = cv.parentElement.clientWidth - 56;
+  const H = Math.max(360, items.length*40);
+  cv.width = W*dpr; cv.height = H*dpr;
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  const padL=140, padR=80, padT=20, padB=20;
+  const plotW = W-padL-padR;
+  const max = Math.max(...items.map(d=>Math.abs(d.sr)));
+  const zero = padL + (plotW * (0 - (-max))/(2*max));
+
+  // axis line
+  ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(zero, padT); ctx.lineTo(zero, H-padB); ctx.stroke();
+
+  const rowH = (H-padT-padB)/items.length;
+  items.forEach((d,i) => {
+    const y = padT + i*rowH + rowH/2;
+    const w = Math.abs(d.sr)/max * (plotW/2);
+    ctx.fillStyle = d.sr>0 ? '#1a4d2e' : '#7a1f2b';
+    if(d.sr>0) ctx.fillRect(zero, y-rowH*0.3, w, rowH*0.6);
+    else ctx.fillRect(zero-w, y-rowH*0.3, w, rowH*0.6);
+
+    // signal label (left)
+    ctx.fillStyle = '#0a0a0a'; ctx.font = '12px JetBrains Mono'; ctx.textAlign='right';
+    ctx.fillText(d.s, padL-12, y+4);
+
+    // value (right of bar)
+    ctx.font = '11px JetBrains Mono'; ctx.fillStyle = d.sr>0?'#1a4d2e':'#7a1f2b';
+    if(d.sr>0){ ctx.textAlign='left'; ctx.fillText((d.sr>=0?'+':'')+d.sr.toFixed(2), zero+w+8, y+4); }
+    else { ctx.textAlign='right'; ctx.fillText((d.sr>=0?'+':'')+d.sr.toFixed(2), zero-w-8, y+4); }
+  });
+}
+
+/* ============================================================
+   9. COMPANIES — manual + upload
+============================================================ */
+const companyCountPills = document.querySelectorAll('.cnt-pill[data-n]');
+companyCountPills.forEach(p => p.addEventListener('click', () => {
+  document.querySelectorAll('.cnt-pill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');
+  document.querySelector('.cnt-pill:last-child').textContent = `— current: ${p.dataset.n} —`;
+  document.querySelector('.cnt-pill:last-child').classList.add('active');
+  buildManualForm(+p.dataset.n);
+}));
+
+function currentN(){
+  return STATE.companies.length || 3;
+}
+
+function buildManualForm(n){
+  const host = document.getElementById('manual-form-host');
+  const signals = STATE.detected_signals.length ? STATE.detected_signals
+    : ['inssell','booktomarket','momentum','grossprofit','earnsurprise','sue','fscore','xfin','volatility','accruals'];
+
+  const defaults = REFERENCE_COMPANIES();
+  let html = '<div class="manual-form"><div class="manual-form-grid">';
+  for(let i=0;i<n;i++){
+    const def = defaults[i] || {ticker:`CO${i+1}`, signals:{}, sources:{}, asof:{}};
+    html += `<div class="manual-co" data-idx="${i}">
+      <h4>Company ${i+1}</h4>
+      <div class="field">
+        <label>Ticker</label>
+        <input type="text" class="co-ticker" value="${def.ticker||('CO'+(i+1))}">
+      </div>
+      <div class="field">
+        <label>Exchange / Sector</label>
+        <input type="text" class="co-meta" value="${def.meta||''}" placeholder="e.g. NYSE · Utilities">
+      </div>`;
+    signals.forEach(s => {
+      const v = def.signals[s] != null ? def.signals[s] : '';
+      const src = (def.sources && def.sources[s]) || '';
+      const asof = (def.asof && def.asof[s]) || '';
+      const dev = (def.deviations && def.deviations[s]) || '';
+      html += `<div class="sig-block">
+        <div class="sig-block-head"><strong>${s}</strong></div>
+        <div class="field-row">
+          <input type="number" step="any" class="co-sig" data-sig="${s}" value="${v}" placeholder="value">
+          <input type="text" class="co-src" data-sig="${s}" value="${src}" placeholder="source">
+          <input type="text" class="co-asof" data-sig="${s}" value="${asof}" placeholder="as-of">
+        </div>
+        <input type="text" class="co-dev" data-sig="${s}" value="${dev}" placeholder="deviation from definition (optional)">
+      </div>`;
+    });
+    html += '</div>';
+  }
+  html += '</div></div>';
+  host.innerHTML = html;
+  syncCompanies();
+}
+
+document.getElementById('manual-add-btn').addEventListener('click', () => {
+  const cur = document.querySelectorAll('.manual-co').length;
+  if(cur>=10){ alert('Maximum 10 companies'); return; }
+  buildManualForm(cur+1);
+});
+document.getElementById('load-ref-btn').addEventListener('click', () => buildManualForm(3));
+
+document.addEventListener('input', e => {
+  if(e.target.classList.contains('co-ticker') || e.target.classList.contains('co-sig')) syncCompanies();
+});
+
+function syncCompanies(){
+  const cos = [];
+  document.querySelectorAll('.manual-co').forEach(div => {
+    const t = div.querySelector('.co-ticker')?.value?.trim() || '';
+    if(!t) return;
+    const meta = div.querySelector('.co-meta')?.value?.trim() || '';
+    const sigs = {}, srcs = {}, asof = {}, devs = {};
+    div.querySelectorAll('.co-sig').forEach(inp => {
+      const v = inp.value;
+      if(v!=='' && !isNaN(+v)) sigs[inp.dataset.sig] = +v;
+    });
+    div.querySelectorAll('.co-src').forEach(inp => {
+      if(inp.value.trim()) srcs[inp.dataset.sig] = inp.value.trim();
+    });
+    div.querySelectorAll('.co-asof').forEach(inp => {
+      if(inp.value.trim()) asof[inp.dataset.sig] = inp.value.trim();
+    });
+    div.querySelectorAll('.co-dev').forEach(inp => {
+      if(inp.value.trim()) devs[inp.dataset.sig] = inp.value.trim();
+    });
+    cos.push({ticker:t, meta, signals:sigs, sources:srcs, asof, deviations:devs});
+  });
+  STATE.companies = cos;
+  checkRunRecBtn();
+}
+
+document.querySelectorAll('[data-coview]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-coview]').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('#panel-manual,#panel-upload').forEach(p=>p.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('panel-' + b.dataset.coview).classList.add('active');
+  });
+});
+
+const coInput = document.getElementById('co-input');
+const coZone = document.getElementById('co-zone');
+const coLog = document.getElementById('co-log');
+coInput.addEventListener('change', e => { if(e.target.files.length) handleCoFile(e.target.files[0]); });
+['dragover','dragenter'].forEach(ev=>coZone.addEventListener(ev,e=>{e.preventDefault();coZone.classList.add('active');}));
+['dragleave','drop'].forEach(ev=>coZone.addEventListener(ev,e=>{e.preventDefault();coZone.classList.remove('active');}));
+coZone.addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files.length) handleCoFile(e.dataTransfer.files[0]); });
+
+function handleCoFile(file){
+  clearLog(coLog);
+  logTo(coLog, `Reading ${file.name}…`);
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let rows;
+      if(file.name.toLowerCase().endsWith('.csv')) rows = parseCSV(e.target.result);
+      else { const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); }
+      if(!rows.length){ logTo(coLog,'Empty file','err'); return; }
+      const cols = Object.keys(rows[0]);
+      const tickerCol = cols.find(c => /^ticker$|^company$|^firm$|^name$/i.test(c)) || cols[0];
+      const cos = rows.map(r => {
+        const sigs = {};
+        cols.forEach(c => { if(c!==tickerCol && typeof r[c]==='number') sigs[c]=r[c]; });
+        return {ticker:String(r[tickerCol]), signals:sigs};
+      });
+      if(cos.length<3){ logTo(coLog,'Need at least 3 companies','err'); return; }
+      if(cos.length>10){ logTo(coLog,'Max 10 companies — truncating','err'); cos.length = 10; }
+      STATE.companies = cos;
+      logTo(coLog,`<span class="ok">Loaded ${cos.length} companies:</span> ${cos.map(c=>c.ticker).join(', ')}`);
+      // also rebuild manual form to mirror
+      buildManualForm(cos.length);
+      // overwrite manual entries with loaded values
+      document.querySelectorAll('.manual-co').forEach((div,i) => {
+        if(!cos[i]) return;
+        div.querySelector('.co-ticker').value = cos[i].ticker;
+        div.querySelectorAll('.co-sig').forEach(inp => { if(cos[i].signals[inp.dataset.sig]!=null) inp.value = cos[i].signals[inp.dataset.sig]; });
+      });
+      syncCompanies();
+    } catch(err) { logTo(coLog,'Failed: '+err.message,'err'); }
+  };
+  if(file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+
+function REFERENCE_COMPANIES(){
+  const filing10K = '10-K · FY2023 · 31-Dec-2023';
+  const filing10Q = '10-Q · Q1 2024 · 31-Mar-2024';
+  const yahoo = 'Yahoo! Finance';
+  const form4 = 'SEC Form 4 (trailing 3m)';
+  const eps = 'Q1-24 actual vs IBES consensus';
+
+  return [
+    {ticker:'CEG', meta:'NASDAQ · Utilities',
+     signals:{inssell:0.0012, booktomarket:0.091, momentum:0.239, grossprofit:0.176, earnsurprise:0.00168, sue:0.299, fscore:5, xfin:-0.045, volatility:0.514, accruals:0.136},
+     sources:{inssell:form4, booktomarket:`${filing10K} + ${yahoo}`, momentum:`${yahoo} 12m-1m`, grossprofit:filing10K, earnsurprise:eps, sue:eps, fscore:filing10K, xfin:`${filing10K} cash-flow stmt`, volatility:`${yahoo} 12m daily σ`, accruals:filing10K},
+     asof:{inssell:'30-Apr-2024', booktomarket:'30-Apr-2024 (px) / 31-Dec-2023 (BV)', momentum:'30-Apr-2024', grossprofit:'31-Dec-2023', earnsurprise:'06-May-2024', sue:'06-May-2024', fscore:'31-Dec-2023', xfin:'31-Dec-2023', volatility:'30-Apr-2024', accruals:'31-Dec-2023'},
+     deviations:{sue:'Used (actual - consensus) / consensus as proxy due to YoY EPS noise', earnsurprise:'Q1 10-Q filed 09-May, after the 30-Apr cutoff; used announced EPS released 06-May'}},
+
+    {ticker:'NEE', meta:'NYSE · Utilities',
+     signals:{inssell:0.0005, booktomarket:0.247, momentum:0.421, grossprofit:0.128, earnsurprise:0.00117, sue:0.138, fscore:6, xfin:0.041, volatility:0.265, accruals:-0.022},
+     sources:{inssell:form4, booktomarket:`${filing10K} + ${yahoo}`, momentum:`${yahoo} 12m-1m`, grossprofit:filing10K, earnsurprise:eps, sue:eps, fscore:filing10K, xfin:`${filing10K} cash-flow stmt`, volatility:`${yahoo} 12m daily σ`, accruals:filing10K},
+     asof:{inssell:'30-Apr-2024', booktomarket:'30-Apr-2024 (px) / 31-Dec-2023 (BV)', momentum:'30-Apr-2024', grossprofit:'31-Dec-2023', earnsurprise:'23-Apr-2024', sue:'23-Apr-2024', fscore:'31-Dec-2023', xfin:'31-Dec-2023', volatility:'30-Apr-2024', accruals:'31-Dec-2023'},
+     deviations:{sue:'Used (actual - consensus) / consensus as proxy'}},
+
+    {ticker:'VST', meta:'NYSE · Utilities',
+     signals:{inssell:0.0002, booktomarket:0.095, momentum:0.360, grossprofit:0.167, earnsurprise:-0.00217, sue:-0.565, fscore:7, xfin:-0.042, volatility:0.450, accruals:-0.120},
+     sources:{inssell:form4, booktomarket:`${filing10K} + ${yahoo}`, momentum:`${yahoo} 12m-1m`, grossprofit:filing10K, earnsurprise:eps, sue:eps, fscore:filing10K, xfin:`${filing10K} cash-flow stmt`, volatility:`${yahoo} 12m daily σ`, accruals:filing10K},
+     asof:{inssell:'30-Apr-2024', booktomarket:'30-Apr-2024 (px) / 31-Dec-2023 (BV)', momentum:'30-Apr-2024', grossprofit:'31-Dec-2023', earnsurprise:'07-May-2024', sue:'07-May-2024', fscore:'31-Dec-2023', xfin:'31-Dec-2023', volatility:'30-Apr-2024', accruals:'31-Dec-2023'},
+     deviations:{sue:'Used (actual - consensus) / consensus as proxy', earnsurprise:'Q1 announced 07-May, after 30-Apr cutoff'}}
+  ];
+}
+
+function checkRunRecBtn(){
+  const ok = STATE.companies.length>=3 && STATE.fm_multi;
+  document.getElementById('run-rec-btn').disabled = !ok;
+}
+
+/* ============================================================
+   10. RECOMMENDATION
+============================================================ */
+document.getElementById('run-rec-btn').addEventListener('click', runRecommendation);
+
+function runRecommendation(){
+  const fm = STATE.fm_multi;
+  const cos = STATE.companies;
+  if(!fm || cos.length<3){ alert('Need dataset and ≥3 companies'); return; }
+
+  // surviving signals only (|t| > 1.645)
+  const surviving = fm.signals.filter(s => Math.abs(fm.results[s].t) > STATE.T_SIG);
+
+  // rank companies on each surviving signal
+  const ranks = {};   // {ticker: {signal: rank01}}
+  cos.forEach(c => ranks[c.ticker] = {});
+  const breakdown = {}; // {ticker: {signal: contribution}}
+  cos.forEach(c => breakdown[c.ticker] = {});
+
+  surviving.forEach(s => {
+    const vals = cos.map(c => ({t:c.ticker, v: c.signals[s]}))
+      .filter(o => o.v != null && !isNaN(o.v));
+    if(vals.length < cos.length){
+      // missing data — give 0.5 to those missing
+      cos.forEach(c => { if(c.signals[s]==null||isNaN(c.signals[s])) ranks[c.ticker][s] = 0.5; });
+    }
+    vals.sort((a,b) => a.v - b.v);
+    vals.forEach((o,i) => {
+      const r = vals.length===1 ? 0.5 : i/(vals.length-1);
+      ranks[o.t][s] = r;
+    });
+  });
+
+  // composite α
+  const scores = cos.map(c => {
+    let total = 0;
+    surviving.forEach(s => {
+      const rank = ranks[c.ticker][s] ?? 0.5;
+      const beta = fm.results[s].avg;
+      const contrib = rank * beta;
+      breakdown[c.ticker][s] = contrib;
+      total += contrib;
+    });
+    return {ticker:c.ticker, score:total};
+  });
+
+  scores.sort((a,b) => b.score - a.score);
+  const calls = scores.map((o,i) => {
+    let rec;
+    if(i===0) rec='Buy';
+    else if(i===scores.length-1) rec='Sell';
+    else rec='Neutral';
+    return {...o, rec};
+  });
+
+  STATE.rec = {scores:calls, ranks, breakdown, surviving};
+  renderRec();
+  document.getElementById('rec-results').classList.remove('hidden');
+}
+
+function renderRec(){
+  const {scores, surviving, breakdown, ranks} = STATE.rec;
+
+  // table
+  const tbl = document.getElementById('rec-tbl');
+  let html = `<thead><tr><th>Rank</th><th>Ticker</th><th class="num">Composite α</th><th>Recommendation</th></tr></thead><tbody>`;
+  scores.forEach((s,i) => {
+    const cls = s.score>0?'pos':s.score<0?'neg':'';
+    html += `<tr><td>${i+1}</td><td><strong>${s.ticker}</strong></td><td class="num ${cls}">${(s.score>=0?'+':'')}${s.score.toFixed(5)}</td><td>${s.rec}</td></tr>`;
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+
+  // rec grid
+  const grid = document.getElementById('rec-rec-grid');
+  grid.innerHTML = '';
+  scores.forEach(s => {
+    const cls = s.rec==='Buy'?'buy':s.rec==='Sell'?'sell':'hold';
+    const scoreCls = s.score>0?'pos':s.score<0?'neg':'';
+    grid.innerHTML += `
+      <div class="rec ${cls}">
+        <div class="ticker">${s.ticker}</div>
+        <h3>${s.ticker}</h3>
+        <span class="badge">${s.rec}</span>
+        <div class="score ${scoreCls}">${(s.score>=0?'+':'')}${s.score.toFixed(5)}</div>
+        <div class="score-lbl">Composite α</div>
+      </div>`;
+  });
+
+  // breakdown table for report
+  const bTbl = document.getElementById('report-tbl');
+  let bh = `<thead><tr><th>Signal</th><th class="num">FM β</th>`;
+  scores.forEach(s => bh += `<th class="num">${s.ticker}<br><span style="font-size:9px;color:var(--ink-3)">rank · contrib</span></th>`);
+  bh += '</tr></thead><tbody>';
+  surviving.forEach(sig => {
+    const beta = STATE.fm_multi.results[sig].avg;
+    const cls = beta>0?'pos':'neg';
+    bh += `<tr><td><strong>${sig}</strong></td><td class="num ${cls}">${(beta>=0?'+':'')}${beta.toFixed(5)}</td>`;
+    scores.forEach(s => {
+      const rk = ranks[s.ticker][sig];
+      const cb = breakdown[s.ticker][sig];
+      const ccls = cb>0?'pos':cb<0?'neg':'';
+      bh += `<td class="num ${ccls}">${rk!=null?rk.toFixed(2):'—'} · ${(cb>=0?'+':'')}${cb.toFixed(5)}</td>`;
+    });
+    bh += '</tr>';
+  });
+  bh += `<tr style="background:var(--bg-2)"><td><strong>Composite α</strong></td><td></td>`;
+  scores.forEach(s => {
+    const cls = s.score>0?'pos':'neg';
+    bh += `<td class="num ${cls}"><strong>${(s.score>=0?'+':'')}${s.score.toFixed(5)}</strong></td>`;
+  });
+  bh += `</tr></tbody>`;
+  bTbl.innerHTML = bh;
+
+  // source citation table
+  const srcTbl = document.getElementById('source-tbl');
+  if(srcTbl){
+    let sh = `<thead><tr><th>Company</th><th>Signal</th><th class="num">Value</th><th>Source</th><th>As-of</th><th>Deviation</th></tr></thead><tbody>`;
+    STATE.companies.forEach(c => {
+      surviving.forEach(sig => {
+        const v = c.signals[sig];
+        const src = (c.sources && c.sources[sig]) || '—';
+        const ao = (c.asof && c.asof[sig]) || '—';
+        const dev = (c.deviations && c.deviations[sig]) || '—';
+        sh += `<tr><td><strong>${c.ticker}</strong></td><td>${sig}</td><td class="num">${v!=null?v.toFixed(5):'—'}</td><td style="font-size:11px">${src}</td><td style="font-size:11px">${ao}</td><td style="font-size:11px;color:var(--ink-3)">${dev}</td></tr>`;
+      });
+    });
+    sh += '</tbody>';
+    srcTbl.innerHTML = sh;
+  }
+
+  // summary text
+  const buy = scores[0], sell = scores[scores.length-1];
+  const neutral = scores.slice(1,-1).map(s=>s.ticker).join(', ');
+  document.getElementById('report-summary').innerHTML =
+    `Across ${scores.length} pre-registered firms and ${surviving.length} surviving signals (|t| &gt; ${STATE.T_SIG}) from the multivariate Fama-MacBeth regression, the composite α framework recommends a long position in <strong>${buy.ticker}</strong> (composite α = ${(buy.score>=0?'+':'')}${buy.score.toFixed(5)}) and a short position in <strong>${sell.ticker}</strong> (composite α = ${(sell.score>=0?'+':'')}${sell.score.toFixed(5)})${neutral?', with ' + neutral + ' assigned a Neutral rating':''}. The ranking reflects each firm's cross-sectional position on the surviving signals, weighted by historical Fama-MacBeth coefficients.`;
+}
+
+/* ============================================================
+   11. DOWNLOADS
+============================================================ */
+document.getElementById('dl-html-btn').addEventListener('click', downloadHTMLReport);
+document.getElementById('dl-csv-btn').addEventListener('click', downloadCompositeCSV);
+document.getElementById('dl-fm-csv-btn').addEventListener('click', downloadFMCSV);
+document.getElementById('print-page-btn').addEventListener('click', () => window.print());
+
+function downloadFile(filename, content, mime='text/plain'){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),100);
+}
+
+function downloadCompositeCSV(){
+  const {scores, breakdown, surviving} = STATE.rec;
+  let csv = 'ticker,rank,recommendation,composite_alpha\n';
+  scores.forEach((s,i) => csv += `${s.ticker},${i+1},${s.rec},${s.score.toFixed(6)}\n`);
+  csv += '\n--- breakdown ---\nticker,signal,fm_beta,rank,contribution\n';
+  scores.forEach(s => surviving.forEach(sig => {
+    csv += `${s.ticker},${sig},${STATE.fm_multi.results[sig].avg.toFixed(6)},${(STATE.rec.ranks[s.ticker][sig]||0).toFixed(3)},${breakdown[s.ticker][sig].toFixed(6)}\n`;
+  }));
+  downloadFile('alphanomics_composite.csv', csv, 'text/csv');
+}
+
+function downloadFMCSV(){
+  const fm = STATE.fm_multi;
+  const fmU = STATE.fm_uni;
+  let csv = 'signal,uni_avg,uni_t,uni_sr,uni_fp,uni_r2,multi_avg,multi_t,multi_sr,multi_fp,multi_r2,survives_t1.645\n';
+  fm.signals.forEach(s => {
+    const u = fmU.results[s], m = fm.results[s];
+    const survives = Math.abs(m.t)>STATE.T_SIG ? 'TRUE' : 'FALSE';
+    csv += `${s},${u.avg.toFixed(6)},${u.t.toFixed(4)},${u.sr.toFixed(4)},${u.fp.toFixed(3)},${u.r2.toFixed(4)},${m.avg.toFixed(6)},${m.t.toFixed(4)},${m.sr.toFixed(4)},${m.fp.toFixed(3)},${m.r2.toFixed(4)},${survives}\n`;
+  });
+  downloadFile('alphanomics_fm_coefficients.csv', csv, 'text/csv');
+}
+
+function downloadHTMLReport(){
+  const {scores, surviving, breakdown, ranks} = STATE.rec;
+  const fm = STATE.fm_multi;
+  const fmU = STATE.fm_uni;
+  const date = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  const buy = scores[0], sell = scores[scores.length-1];
+  const neutral = scores.slice(1,-1);
+
+  // Derive who-is-who at runtime from STATE.companies for narrative
+  const coByTicker = {};
+  STATE.companies.forEach(c => coByTicker[c.ticker] = c);
+
+  const fmRows = fm.signals.map(s => {
+    const u = fmU.results[s], m = fm.results[s];
+    const survives = Math.abs(m.t)>STATE.T_SIG;
+    return `<tr><td>${s}</td>
+      <td class="num">${u.avg.toFixed(5)}</td><td class="num">${u.t.toFixed(2)}</td>
+      <td class="num">${u.fp.toFixed(2)}</td>
+      <td class="num">${m.avg.toFixed(5)}</td><td class="num">${m.t.toFixed(2)}</td>
+      <td class="num">${m.sr.toFixed(2)}</td><td>${survives?'✓':'—'}</td></tr>`;
+  }).join('');
+
+  const breakdownRows = surviving.map(sig => {
+    const beta = fm.results[sig].avg;
+    return `<tr><td>${sig}</td><td class="num">${beta.toFixed(5)}</td>` +
+      scores.map(s => `<td class="num">${ranks[s.ticker][sig]?.toFixed(2)||'—'} · ${breakdown[s.ticker][sig].toFixed(5)}</td>`).join('') + '</tr>';
+  }).join('');
+
+  const recRows = scores.map((s,i) =>
+    `<tr><td>${i+1}</td><td><strong>${s.ticker}</strong></td><td class="num">${s.score.toFixed(5)}</td><td><strong>${s.rec}</strong></td></tr>`
+  ).join('');
+
+  // source citation rows
+  const sourceRows = STATE.companies.map(c => {
+    return surviving.map(sig => {
+      const v = c.signals[sig];
+      const src = (c.sources && c.sources[sig]) || '—';
+      const ao = (c.asof && c.asof[sig]) || '—';
+      const dev = (c.deviations && c.deviations[sig]) || '—';
+      return `<tr><td><strong>${c.ticker}</strong></td><td>${sig}</td><td class="num">${v!=null?v.toFixed(5):'—'}</td><td>${src}</td><td>${ao}</td><td style="color:#5a564f">${dev}</td></tr>`;
+    }).join('');
+  }).join('');
+
+  // Build narrative for each company
+  const narrative = scores.map(s => {
+    const c = coByTicker[s.ticker];
+    const ranksFor = ranks[s.ticker];
+    const top = surviving.map(sig => ({sig, contrib: breakdown[s.ticker][sig]})).sort((a,b)=>Math.abs(b.contrib)-Math.abs(a.contrib)).slice(0,3);
+    const topPos = top.filter(t=>t.contrib>0);
+    const topNeg = top.filter(t=>t.contrib<0);
+    const posLine = topPos.length ? `Lifted by ${topPos.map(t=>`${t.sig} (rank ${ranksFor[t.sig].toFixed(1)}, contrib ${t.contrib>=0?'+':''}${t.contrib.toFixed(5)})`).join(' and ')}.` : '';
+    const negLine = topNeg.length ? `Held back by ${topNeg.map(t=>`${t.sig} (rank ${ranksFor[t.sig].toFixed(1)}, contrib ${t.contrib.toFixed(5)})`).join(' and ')}.` : '';
+    return `<h3>${s.ticker} — ${s.rec.toUpperCase()} (composite α = ${s.score>=0?'+':''}${s.score.toFixed(5)})</h3><p>${posLine} ${negLine}</p>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Composite α Report — ${date}</title>
+  <style>
+    @page{size:letter;margin:0.75in}
+    body{font-family:'Newsreader',Georgia,serif;max-width:8.5in;margin:0 auto;padding:0 0.5in;color:#0a0a0a;line-height:1.55;background:#f5f1e8}
+    .hdr{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0a0a0a;padding:18px 0 14px;margin-bottom:24px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#2a2825}
+    .hdr .l strong{color:#0a0a0a}
+    h1{font-size:38px;margin-bottom:6px;font-weight:400;letter-spacing:-0.025em;line-height:1.05}
+    h1 em{font-style:italic;font-weight:300}
+    h2{font-size:21px;margin:36px 0 14px;font-style:italic;font-weight:500;border-bottom:1px solid #0a0a0a;padding-bottom:6px;letter-spacing:-0.01em}
+    h3{font-size:16px;margin:20px 0 8px;font-weight:600}
+    .sub{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;color:#5a564f;text-transform:uppercase;margin-bottom:32px}
+    p{font-size:14px;line-height:1.65;margin:10px 0;color:#2a2825}
+    p strong{color:#0a0a0a}
+    table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:10.5px;margin:12px 0;border-top:1.5px solid #0a0a0a;border-bottom:1.5px solid #0a0a0a}
+    th{text-align:left;padding:7px 6px;border-bottom:1px solid #0a0a0a;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:#5a564f;font-weight:500}
+    td{padding:6px;border-bottom:1px solid #c5bfae}
+    td.num{text-align:right;font-variant-numeric:tabular-nums}
+    .summary{font-style:italic;font-size:15px;border-left:3px solid #0a0a0a;padding-left:14px;margin:18px 0;color:#0a0a0a;line-height:1.65;font-weight:300}
+    .meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid #0a0a0a;margin:18px 0}
+    .meta-grid div{padding:12px;border-right:1px solid #0a0a0a;text-align:center}
+    .meta-grid div:last-child{border-right:none}
+    .meta-grid .k{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#5a564f;margin-bottom:4px}
+    .meta-grid .v{font-size:18px;font-style:italic;font-weight:500}
+    .meta-grid .buy .v{color:#1a4d2e} .meta-grid .sell .v{color:#7a1f2b}
+    .footer-line{margin-top:40px;font-family:'JetBrains Mono',monospace;font-size:9px;color:#5a564f;letter-spacing:0.12em;text-transform:uppercase;border-top:1px solid #0a0a0a;padding-top:12px}
+    @media print{body{margin:0;background:white;padding:0}h2{page-break-after:avoid}table{page-break-inside:avoid}.hdr{margin-bottom:18px}}
+  </style></head>
+  <body>
+
+  <div class="hdr">
+    <div class="l"><strong>15.465 Final Project</strong> · Musalem · Correa · Rooprai · Dataset: fmreg_data_std_16</div>
+    <div class="r">${date}</div>
+  </div>
+
+  <h1>Composite α<em> Report</em></h1>
+  <div class="sub">Cross-sectional Fama-MacBeth · ${scores.length} firms · ${surviving.length} surviving signals</div>
+
+  <h2>Executive summary</h2>
+  <div class="summary">Across ${scores.length} pre-registered firms and ${surviving.length} surviving signals at |t| &gt; ${STATE.T_SIG} from the multivariate Fama-MacBeth regression, the composite α framework recommends a long position in <strong>${buy.ticker}</strong> (composite α = ${buy.score>=0?'+':''}${buy.score.toFixed(5)}) and a short position in <strong>${sell.ticker}</strong> (composite α = ${sell.score>=0?'+':''}${sell.score.toFixed(5)})${neutral.length?', with ' + neutral.map(n=>n.ticker).join(', ') + ' assigned a Neutral rating':''}. The composite ranking reflects each firm's cross-sectional position on the surviving signals weighted by their historical Fama-MacBeth coefficients. The recommendation should be interpreted as a relative-value call across the pre-registered universe, not a market-wide screen.</div>
+
+  <div class="meta-grid">
+    <div class="buy"><div class="k">Buy</div><div class="v">${buy.ticker}</div></div>
+    <div><div class="k">Neutral</div><div class="v">${neutral.length?neutral.map(n=>n.ticker).join(', '):'—'}</div></div>
+    <div class="sell"><div class="k">Sell</div><div class="v">${sell.ticker}</div></div>
+  </div>
+
+  <h2>Part 1 · Fama-MacBeth analysis</h2>
+
+  <h3>Univariate &amp; multivariate regression output</h3>
+  <p>The table below reports both univariate and multivariate Fama-MacBeth statistics across all signals in the source panel. Univariate regressions estimate each signal's predictive power in isolation; multivariate regressions estimate marginal predictive power after controlling for the others. The "Survives" column flags signals exceeding the |t| &gt; ${STATE.T_SIG} threshold in the multivariate run — these are the signals carried forward to the composite scoring in Part 2.</p>
+  <table>
+    <thead><tr><th>Signal</th><th class="num">Uni avg β</th><th class="num">Uni t</th><th class="num">Frac pos</th><th class="num">Multi avg β</th><th class="num">Multi t</th><th class="num">Implied SR</th><th>Survives</th></tr></thead>
+    <tbody>${fmRows}</tbody>
+  </table>
+
+  <h3>Univariate · Strongest relationships</h3>
+  <p>Based on t-statistics and average coefficients, momentum, earnings surprise, and SUE show the strongest positive univariate relationships with cross-sectional returns. Insider selling and external financing demonstrate the strongest negative univariate relationships. All five exceed the |t| &gt; 1.645 threshold by a wide margin.</p>
+
+  <h3>Univariate · Coefficient stability</h3>
+  <p>The top performers are highly stable. Momentum, SUE, and earnings surprise yield positive coefficients in 85% to 90% of the sixty observed months. Insider selling and external financing are negative in 80% to 87% of months. The low standard error implied by the high t-statistics shows no extreme structural breaks for these factors.</p>
+
+  <h3>Univariate · Why the signals work</h3>
+  <p><strong>Momentum and earnings surprise (post-earnings-announcement drift).</strong> Both reflect investor underreaction to new information — a behavioral bias documented since Bernard &amp; Thomas (1989). When firms beat consensus, the market price does not immediately fully incorporate the surprise; the residual drift produces predictable monthly returns over subsequent months.</p>
+  <p><strong>Insider selling.</strong> Reflects information asymmetry. Corporate insiders observe fundamentals at higher frequency and resolution than the market and time their personal trades on perceived overvaluation. The cross-sectional signal aggregates this private information.</p>
+  <p><strong>External financing.</strong> Combines two effects: market-timing — managers issue equity when they perceive overvaluation — and investment-policy — heavy capital raising signals overinvestment that earns sub-economic returns.</p>
+  <p><strong>Volatility.</strong> The "low-volatility anomaly" — high-vol stocks earn lower risk-adjusted returns than CAPM predicts. Combines lottery-preference behavior and leverage-constraint frictions.</p>
+  <p><strong>Gross profitability.</strong> A risk-adjusted compensation effect (Novy-Marx) — high gross-profitability firms have higher expected returns even after controlling for value and size, often interpreted as a quality premium that the market under-rewards.</p>
+
+  <h3>Multivariate · Surviving signals and attenuation</h3>
+  <p>Nine of ten signals survive in the multivariate regression. F-Score falls below the cutoff because its information is already captured by its component pieces (gross profitability, accruals, external financing). For most surviving signals, coefficients and t-statistics attenuate modestly relative to the univariate run. The largest attenuation appears for the earnings-related signals: SUE drops from t = 7.50 to t = 4.28, and earnings surprise from t = 7.85 to t = 4.75 — these signals share substantial cross-sectional information. Momentum, in contrast, is essentially unchanged, confirming that momentum carries information orthogonal to the fundamental signals.</p>
+
+  <h3>Multivariate · R² interpretation and economic magnitudes</h3>
+  <p>The multivariate average R² is approximately 0.22, meaning the ten-signal model explains roughly 22% of the cross-sectional variance in monthly stock returns in an average month — high for cross-sectional asset-pricing regressions because the standardized signal construction in the simulated panel removes some real-world noise. Because all signals are standardized but returns are not, each coefficient is the expected change in monthly return for a one-standard-deviation increase in the signal. For momentum (β = +0.0197), a firm with momentum one σ above the cross-sectional mean is expected to earn ~1.97% higher monthly return than an average firm. For insider selling (β = −0.0259), the corresponding spread is −2.59% per month — annualized, ~24 and ~31 percentage points respectively, which is why the implied Sharpe ratios are large.</p>
+
+  <h3>Sharpe ratio analysis</h3>
+  <p>By absolute implied annualized Sharpe ratio, the four strongest signals are momentum (+4.41), gross profitability (+3.27), insider selling (−3.02), and external financing (−2.80). Two are positive momentum-style behavioral signals; two are negative information / market-timing signals. The mix is informative: real alpha appears to come from combining behavioral underreaction with information asymmetry — distinct sources that should diversify in a portfolio context. For strategy design, three implications follow: (i) signal weighting should track Sharpe rather than t-statistic alone, (ii) a long-short construction is preferred because four of the strongest signals are negative-sided, and (iii) diversifying across signal types (behavioral + corporate-action) should reduce portfolio variance versus stacking similar signals.</p>
+
+  <h2>Part 2 · Composite recommendation</h2>
+
+  <h3>Methodology</h3>
+  <p>For each signal surviving the |t| &gt; ${STATE.T_SIG} threshold (${surviving.length} signals: ${surviving.join(', ')}), we rank the ${scores.length} pre-registered firms cross-sectionally — highest raw value receives a rank of 1.0, lowest receives 0.0, intermediate firms are evenly spaced. Each rank is multiplied by the historical Fama-MacBeth average coefficient, and contributions are summed across signals to produce a single composite α score per firm. The forced ranking is applied: the highest score is designated Buy, the lowest is Sell, and intermediate firms are Neutral. Ranking-then-weighting (rather than direct multiplication of raw values by coefficients) is necessary because the FM coefficients were estimated on standardized signals; raw-value multiplication would mix scales.</p>
+
+  <h3>Forced recommendation</h3>
+  <table>
+    <thead><tr><th>Rank</th><th>Ticker</th><th class="num">Composite α</th><th>Recommendation</th></tr></thead>
+    <tbody>${recRows}</tbody>
+  </table>
+
+  <h3>Composite α breakdown</h3>
+  <p>Each cell shows the firm's cross-sectional rank on that signal (0–1) and the resulting contribution to composite α (rank × FM β). The bottom row sums the contributions.</p>
+  <table>
+    <thead><tr><th>Signal</th><th class="num">FM β</th>${scores.map(s=>`<th class="num">${s.ticker}<br><span style="font-size:8px">rank · contrib</span></th>`).join('')}</tr></thead>
+    <tbody>${breakdownRows}
+    <tr style="background:#ebe6d9"><td><strong>Composite α</strong></td><td></td>${scores.map(s=>`<td class="num"><strong>${s.score.toFixed(5)}</strong></td>`).join('')}</tr>
+    </tbody>
+  </table>
+
+  <h3>Per-company narrative</h3>
+  ${narrative}
+
+  <h2>Part 2 · Source citations</h2>
+  <p>The table below records, for each surviving signal and each company, the value used, the source (10-K, 10-Q, Yahoo!, Form 4, etc.), the as-of date, and any deviation from the Part 1 signal definition.</p>
+  <table>
+    <thead><tr><th>Company</th><th>Signal</th><th class="num">Value</th><th>Source</th><th>As-of</th><th>Deviation</th></tr></thead>
+    <tbody>${sourceRows}</tbody>
+  </table>
+
+  <h2>Discretionary analysis · stress-test</h2>
+  <p>The model is purely backward-looking and quantitative. It misses three large forward-looking shifts that materially affect the recommendation.</p>
+  <p><strong>For Constellation Energy (CEG) and Vistra Corp (VST):</strong> the model entirely misses the unprecedented surge in U.S. electricity demand from artificial-intelligence training and hyperscale data centers. Both firms operate large unregulated nuclear fleets with capacity attributes — 24/7, carbon-free baseload — that hyperscalers are actively contracting at substantial premium pricing. The quantitative model recommends Sell on CEG and Neutral on VST based on relative momentum, volatility, and a Q1 earnings miss for VST. A discretionary fund would interpret VST's earnings miss as backward-looking noise relative to the long-duration value of nuclear-baseload PPAs being signed at 2× to 3× historical rates. CEG is signing similar deals. On a discretionary view, both names could be generational buys; the quant model penalizes them precisely on the metrics that matter least to the new demand thesis.</p>
+  <p><strong>For NextEra Energy (NEE):</strong> the model ignores interest-rate sensitivity, which is decisive for capital-intensive renewable developers. Higher-for-longer rates compress project IRRs, and NEE's accelerated capex pipeline relies on continued access to debt at moderate spreads. The Buy recommendation is implicitly conditional on a stable or declining rate environment that the signals cannot detect.</p>
+  <p>Discretionary funds with access to alternative data (data-center contract pipeline, private capex disclosures, management commentary) would diverge sharply from the quant call here. A pure quant fund would short VST and long NEE; a hybrid fund would likely hold both VST and CEG as nuclear-AI-thesis longs and trim NEE on rate concerns. The two recommendations are not reconcilable from data alone — the difference is which time horizon and which information set the strategy is built on.</p>
+
+  <h2>Limitations</h2>
+  <p><strong>Forward-looking blind spots.</strong> The model is backward-looking by construction. Discontinuities — regulatory changes, technology cycles, M&amp;A — are invisible until they affect prices.</p>
+  <p><strong>Forced ranking on small N.</strong> With N = ${scores.length} names, relative ordering does the work. Statistical significance at the firm level is weak. The framework is best understood as a relative-value lens.</p>
+  <p><strong>Signal definitions.</strong> Live signals must be calculated consistently with how they were defined in the training panel. Where definitions differ — for instance, using EPS surprise / consensus as a SUE proxy — the deviation must be disclosed.</p>
+  <p><strong>Panel-period dependence.</strong> FM coefficients reflect the regime captured in the training panel. Out-of-sample regimes can attenuate or invert relationships. Re-estimation is required for any live deployment.</p>
+
+  <p class="footer-line">Generated · 15.465 · MIT Sloan · ${date}</p>
+  </body></html>`;
+
+  downloadFile(`alphanomics_report_${new Date().toISOString().slice(0,10)}.html`, html, 'text/html');
+}
+
+/* ============================================================
+   12. INIT
+============================================================ */
+buildManualForm(3);
+window.addEventListener('resize', () => {
+  if(STATE.fm_multi){
+    if(document.getElementById('panel-series').classList.contains('active')) drawSeries();
+    if(document.getElementById('panel-sharpe').classList.contains('active')) drawSharpe();
+    if(document.getElementById('panel-grid').classList.contains('active')){
+      const mode = document.querySelector('[data-gridmode].active')?.dataset.gridmode || 'multi';
+      drawGrid(mode);
+    }
+  }
+});
+</script>
+</body>
+</html>
